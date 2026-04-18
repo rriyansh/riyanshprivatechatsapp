@@ -32,7 +32,13 @@ const Settings = () => {
   const { themePref, setThemePref, accent, setAccent } = useTheme();
   const [saving, setSaving] = useState(false);
 
-  const updateProfile = async (patch: Record<string, unknown>) => {
+  const updateProfile = async (
+    patch: Partial<{
+      theme_pref: "light" | "dark" | "system";
+      chat_accent: AccentKey;
+      hide_last_seen: boolean;
+    }>
+  ) => {
     if (!user) return;
     setSaving(true);
     const { error } = await supabase.from("profiles").update(patch).eq("user_id", user.id);
