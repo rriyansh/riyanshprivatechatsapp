@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      chat_themes: {
+        Row: {
+          accent: string
+          id: string
+          owner_id: string
+          partner_id: string
+          updated_at: string
+        }
+        Insert: {
+          accent: string
+          id?: string
+          owner_id: string
+          partner_id: string
+          updated_at?: string
+        }
+        Update: {
+          accent?: string
+          id?: string
+          owner_id?: string
+          partner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string
+          followee_id: string
+          follower_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          followee_id: string
+          follower_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          followee_id?: string
+          follower_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -54,10 +120,13 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          chat_accent: string
           created_at: string
           display_name: string | null
+          hide_last_seen: boolean
           id: string
           last_seen: string | null
+          theme_pref: string
           updated_at: string
           user_id: string
           username: string | null
@@ -65,10 +134,13 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          chat_accent?: string
           created_at?: string
           display_name?: string | null
+          hide_last_seen?: boolean
           id?: string
           last_seen?: string | null
+          theme_pref?: string
           updated_at?: string
           user_id: string
           username?: string | null
@@ -76,22 +148,87 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          chat_accent?: string
           created_at?: string
           display_name?: string | null
+          hide_last_seen?: boolean
           id?: string
           last_seen?: string | null
+          theme_pref?: string
           updated_at?: string
           user_id?: string
           username?: string | null
         }
         Relationships: []
       }
+      username_history: {
+        Row: {
+          changed_at: string
+          id: string
+          new_username: string
+          old_username: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          id?: string
+          new_username: string
+          old_username?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          id?: string
+          new_username?: string
+          old_username?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      profiles_public: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          chat_accent: string | null
+          created_at: string | null
+          display_name: string | null
+          followers_count: number | null
+          following_count: number | null
+          last_seen: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          chat_accent?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          followers_count?: never
+          following_count?: never
+          last_seen?: never
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          chat_accent?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          followers_count?: never
+          following_count?: never
+          last_seen?: never
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      is_blocked_between: { Args: { _a: string; _b: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
