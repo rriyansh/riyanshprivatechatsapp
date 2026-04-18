@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { LogOut, MessageSquarePlus, Search, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { MessageSquarePlus, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,8 +24,7 @@ type ConversationPreview = {
 };
 
 const Chats = () => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
@@ -120,39 +119,23 @@ const Chats = () => {
     );
   }, [allUsers, search]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/auth", { replace: true });
-  };
-
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col">
+    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col pb-24">
       {/* Header */}
       <header className="glass sticky top-0 z-20 flex items-center justify-between rounded-b-3xl px-5 py-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Chats</h1>
           <p className="text-xs text-muted-foreground">End-to-end private messaging</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="rounded-full"
-            onClick={() => setShowNew((v) => !v)}
-            aria-label="New chat"
-          >
-            <MessageSquarePlus className="h-5 w-5" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="rounded-full"
-            onClick={handleSignOut}
-            aria-label="Sign out"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
-        </div>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="rounded-full"
+          onClick={() => setShowNew((v) => !v)}
+          aria-label="New chat"
+        >
+          <MessageSquarePlus className="h-5 w-5" />
+        </Button>
       </header>
 
       {/* Search */}
