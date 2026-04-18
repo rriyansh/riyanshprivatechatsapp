@@ -19,6 +19,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          media_duration_ms: number | null
+          media_path: string | null
           receiver_id: string
           seen: boolean
           sender_id: string
@@ -28,6 +30,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          media_duration_ms?: number | null
+          media_path?: string | null
           receiver_id: string
           seen?: boolean
           sender_id: string
@@ -37,6 +41,8 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          media_duration_ms?: number | null
+          media_path?: string | null
           receiver_id?: string
           seen?: boolean
           sender_id?: string
