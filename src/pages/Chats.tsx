@@ -39,7 +39,7 @@ const Chats = () => {
     const [{ data: msgs, error: mErr }, { data: profs, error: pErr }] = await Promise.all([
       supabase
         .from("messages")
-        .select("id, sender_id, receiver_id, content, seen, created_at")
+        .select("id, sender_id, receiver_id, content, type, seen, created_at")
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order("created_at", { ascending: false })
         .limit(500),
@@ -56,6 +56,12 @@ const Chats = () => {
     const profileMap = new Map<string, Profile>();
     (profs || []).forEach((p) => profileMap.set(p.user_id, p));
 
+    const previewFor = (m: { type: string; content: string }) => {
+      if (m.type === "image") return "📷 Photo";
+      if (m.type === "voice") return "🎤 Voice note";
+      return m.content;
+    };
+
     const byPartner = new Map<string, ConversationPreview>();
     (msgs || []).forEach((m) => {
       const partnerId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
@@ -65,7 +71,7 @@ const Chats = () => {
       if (!existing) {
         byPartner.set(partnerId, {
           partner,
-          lastMessage: m.content,
+          lastMessage: previewFor(m),
           lastAt: m.created_at,
           unread: m.receiver_id === user.id && !m.seen ? 1 : 0,
         });

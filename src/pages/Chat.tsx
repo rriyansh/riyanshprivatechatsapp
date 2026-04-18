@@ -7,6 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
+import { ImageAttachButton } from "@/components/chat/ImageAttachButton";
+import { ImagePreviewDialog } from "@/components/chat/ImagePreviewDialog";
+import { VoiceRecorder } from "@/components/chat/VoiceRecorder";
+import { ImageBubble, VoiceBubble } from "@/components/chat/MediaMessage";
+import { compressImage } from "@/lib/imageCompression";
 
 type Message = {
   id: string;
@@ -16,6 +21,8 @@ type Message = {
   type: string;
   seen: boolean;
   created_at: string;
+  media_path: string | null;
+  media_duration_ms: number | null;
 };
 
 type Profile = {
@@ -25,6 +32,9 @@ type Profile = {
   avatar_url: string | null;
   last_seen: string | null;
 };
+
+const MAX_IMAGE_MB = 10;
+const MAX_VOICE_MB = 5;
 
 const Chat = () => {
   const { partnerId } = useParams<{ partnerId: string }>();
@@ -37,6 +47,9 @@ const Chat = () => {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
+
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [imageSending, setImageSending] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -73,10 +86,9 @@ const Chat = () => {
       if (pErr) toast.error(pErr.message);
       if (mErr) toast.error(mErr.message);
       setPartner(prof || null);
-      setMessages(msgs || []);
+      setMessages((msgs || []) as Message[]);
       setLoading(false);
 
-      // Mark received messages as seen
       const unseenIds = (msgs || [])
         .filter((m) => m.receiver_id === user.id && !m.seen)
         .map((m) => m.id);
@@ -89,7 +101,7 @@ const Chat = () => {
     };
   }, [user?.id, partnerId]);
 
-  // Realtime: messages + typing presence/broadcast
+  // Realtime
   useEffect(() => {
     if (!user || !partnerId || !channelName) return;
 
@@ -103,13 +115,11 @@ const Chat = () => {
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
           const m = payload.new as Message;
-          // Only messages between us
           const involvesPair =
             (m.sender_id === user.id && m.receiver_id === partnerId) ||
             (m.sender_id === partnerId && m.receiver_id === user.id);
           if (!involvesPair) return;
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-          // Mark as seen if it's incoming
           if (m.receiver_id === user.id && !m.seen) {
             supabase.from("messages").update({ seen: true }).eq("id", m.id).then(() => {});
           }
@@ -140,7 +150,6 @@ const Chat = () => {
     };
   }, [channelName, user?.id, partnerId]);
 
-  // Auto-scroll to bottom on new message
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -156,7 +165,7 @@ const Chat = () => {
     });
   };
 
-  const handleSend = async (e?: React.FormEvent) => {
+  const handleSendText = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const content = text.trim();
     if (!content || !user || !partnerId || sending) return;
@@ -174,30 +183,101 @@ const Chat = () => {
       type: "text",
       seen: false,
       created_at: new Date().toISOString(),
+      media_path: null,
+      media_duration_ms: null,
     };
     setMessages((prev) => [...prev, optimistic]);
 
     const { data, error } = await supabase
       .from("messages")
-      .insert({
-        sender_id: user.id,
-        receiver_id: partnerId,
-        content,
-        type: "text",
-      })
+      .insert({ sender_id: user.id, receiver_id: partnerId, content, type: "text" })
       .select("*")
       .single();
 
     setSending(false);
     if (error) {
       toast.error(error.message);
-      // rollback
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setText(content);
       return;
     }
-    // Replace optimistic with real
-    setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? (data as Message) : m)));
+    setMessages((prev) =>
+      prev.map((m) => (m.id === optimistic.id ? (data as Message) : m))
+    );
+  };
+
+  const handlePickImage = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please pick an image file.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+      toast.error(`Image is too large (max ${MAX_IMAGE_MB}MB).`);
+      return;
+    }
+    setPendingImage(file);
+  };
+
+  const sendImage = async () => {
+    if (!pendingImage || !user || !partnerId) return;
+    setImageSending(true);
+    try {
+      const { blob, ext, mime } = await compressImage(pendingImage, {
+        maxDim: 1600,
+        quality: 0.82,
+      });
+      const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("chat-media")
+        .upload(path, blob, { contentType: mime, upsert: false });
+      if (upErr) throw upErr;
+
+      const { error: insErr } = await supabase.from("messages").insert({
+        sender_id: user.id,
+        receiver_id: partnerId,
+        content: "",
+        type: "image",
+        media_path: path,
+      });
+      if (insErr) {
+        // rollback storage
+        await supabase.storage.from("chat-media").remove([path]);
+        throw insErr;
+      }
+      setPendingImage(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to send image";
+      toast.error(msg);
+    } finally {
+      setImageSending(false);
+    }
+  };
+
+  const sendVoice = async (blob: Blob, durationMs: number, mime: string) => {
+    if (!user || !partnerId) return;
+    if (blob.size > MAX_VOICE_MB * 1024 * 1024) {
+      toast.error(`Voice note is too large (max ${MAX_VOICE_MB}MB).`);
+      return;
+    }
+    const ext = mime.includes("ogg") ? "ogg" : mime.includes("mp4") ? "m4a" : "webm";
+    const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("chat-media")
+      .upload(path, blob, { contentType: mime, upsert: false });
+    if (upErr) throw upErr;
+
+    const { error: insErr } = await supabase.from("messages").insert({
+      sender_id: user.id,
+      receiver_id: partnerId,
+      content: "",
+      type: "voice",
+      media_path: path,
+      media_duration_ms: Math.round(durationMs),
+    });
+    if (insErr) {
+      await supabase.storage.from("chat-media").remove([path]);
+      throw insErr;
+    }
   };
 
   const grouped = useMemo(() => groupByDay(messages), [messages]);
@@ -258,22 +338,32 @@ const Chat = () => {
               {items.map((m, idx) => {
                 const mine = m.sender_id === user?.id;
                 const prev = items[idx - 1];
-                const grouped = prev && prev.sender_id === m.sender_id;
+                const isGrouped = prev && prev.sender_id === m.sender_id;
+                const isMedia = m.type === "image" || m.type === "voice";
                 return (
-                  <div
-                    key={m.id}
-                    className={`mb-1 flex ${mine ? "justify-end" : "justify-start"}`}
-                  >
+                  <div key={m.id} className={`mb-1 flex ${mine ? "justify-end" : "justify-start"}`}>
                     <div
-                      className={`max-w-[78%] animate-bubble-in rounded-3xl px-4 py-2 text-[15px] leading-snug ${
+                      className={`max-w-[78%] animate-bubble-in rounded-3xl text-[15px] leading-snug ${
                         mine ? "bubble-sender rounded-br-md" : "bubble-receiver rounded-bl-md"
-                      } ${grouped ? "mt-0.5" : "mt-2"}`}
+                      } ${isGrouped ? "mt-0.5" : "mt-2"} ${
+                        m.type === "image" ? "p-1" : "px-4 py-2"
+                      }`}
                     >
-                      <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                      {m.type === "image" && m.media_path ? (
+                        <ImageBubble path={m.media_path} />
+                      ) : m.type === "voice" && m.media_path ? (
+                        <VoiceBubble
+                          path={m.media_path}
+                          durationMs={m.media_duration_ms}
+                          mine={mine}
+                        />
+                      ) : (
+                        <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                      )}
                       <div
                         className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
                           mine ? "text-primary-foreground/80" : "text-muted-foreground"
-                        }`}
+                        } ${m.type === "image" ? "px-2 pb-1" : ""}`}
                       >
                         <span>{format(new Date(m.created_at), "p")}</span>
                         {mine &&
@@ -303,37 +393,44 @@ const Chat = () => {
       </div>
 
       {/* Composer */}
-      <form
-        onSubmit={handleSend}
-        className="glass sticky bottom-0 z-20 flex items-end gap-2 rounded-t-3xl px-3 py-3"
-      >
-        <textarea
-          value={text}
-          onChange={(e) => handleTyping(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder="Message"
-          rows={1}
-          className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl border border-border bg-background/70 px-4 py-2.5 text-[15px] outline-none focus:ring-2 focus:ring-primary/40"
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!text.trim() || sending}
-          className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-r from-primary to-[hsl(var(--primary-glow))] shadow-[var(--shadow-elegant)] transition-transform active:scale-95 disabled:opacity-50"
-          aria-label="Send"
-        >
-          {sending ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+      <div className="glass sticky bottom-0 z-20 rounded-t-3xl px-3 py-3">
+        <form onSubmit={handleSendText} className="flex items-end gap-2">
+          <ImageAttachButton onPick={handlePickImage} disabled={sending} />
+          <textarea
+            value={text}
+            onChange={(e) => handleTyping(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendText();
+              }
+            }}
+            placeholder="Message"
+            rows={1}
+            className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl border border-border bg-background/70 px-4 py-2.5 text-[15px] outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          {text.trim() ? (
+            <Button
+              type="submit"
+              size="icon"
+              disabled={sending}
+              className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-r from-primary to-[hsl(var(--primary-glow))] shadow-[var(--shadow-elegant)] transition-transform active:scale-95"
+              aria-label="Send"
+            >
+              {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+            </Button>
           ) : (
-            <Send className="h-5 w-5" />
+            <VoiceRecorder onSend={sendVoice} disabled={sending} />
           )}
-        </Button>
-      </form>
+        </form>
+      </div>
+
+      <ImagePreviewDialog
+        file={pendingImage}
+        onCancel={() => setPendingImage(null)}
+        onSend={sendImage}
+        sending={imageSending}
+      />
     </div>
   );
 };
