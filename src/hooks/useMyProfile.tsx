@@ -13,6 +13,7 @@ export type MyProfile = {
   theme_pref: "light" | "dark" | "system";
   chat_accent: AccentKey;
   hide_last_seen: boolean;
+  onboarded: boolean;
   created_at: string;
 };
 
@@ -39,7 +40,7 @@ export const MyProfileProvider = ({ children }: { children: ReactNode }) => {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "user_id, username, display_name, avatar_url, bio, theme_pref, chat_accent, hide_last_seen, created_at"
+        "user_id, username, display_name, avatar_url, bio, theme_pref, chat_accent, hide_last_seen, onboarded, created_at"
       )
       .eq("user_id", user.id)
       .maybeSingle();
