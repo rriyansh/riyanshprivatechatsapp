@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Lock,
   LogOut,
   Moon,
   Palette,
@@ -180,6 +181,9 @@ const Settings = () => {
           </div>
           <Link to="/settings/blocked" className="block border-t border-border">
             <Row icon={<ShieldCheck className="h-4 w-4" />} label="Blocked users" chevron />
+          </Link>
+          <Link to="/settings/app-lock" className="block border-t border-border">
+            <Row icon={<Lock className="h-4 w-4" />} label="App lock (PIN)" chevron />
           </Link>
         </Section>
 

@@ -126,6 +126,7 @@ export type Database = {
           hide_last_seen: boolean
           id: string
           last_seen: string | null
+          onboarded: boolean
           theme_pref: string
           updated_at: string
           user_id: string
@@ -140,6 +141,7 @@ export type Database = {
           hide_last_seen?: boolean
           id?: string
           last_seen?: string | null
+          onboarded?: boolean
           theme_pref?: string
           updated_at?: string
           user_id: string
@@ -154,6 +156,7 @@ export type Database = {
           hide_last_seen?: boolean
           id?: string
           last_seen?: string | null
+          onboarded?: boolean
           theme_pref?: string
           updated_at?: string
           user_id?: string

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Lock, Mail, User as UserIcon, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { Lock, Mail, User as UserIcon, Eye, EyeOff, ArrowRight, Loader2, AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,20 +13,25 @@ import {
   resetSchema,
   friendlyAuthError,
 } from "@/lib/authSchemas";
+import { usernameSchema } from "@/lib/profileSchemas";
 import {
   checkLoginAllowed,
   recordFailedLogin,
   resetLoginAttempts,
 } from "@/lib/loginRateLimit";
+import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup" | "reset";
+type SignInTab = "email" | "username";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const initialMode = (params.get("mode") as Mode) || "signin";
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [signInTab, setSignInTab] = useState<SignInTab>("email");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -40,6 +45,23 @@ const Auth = () => {
     setTimeout(() => setShake(false), 400);
   };
 
+  const resolveUsernameToEmail = async (uname: string): Promise<string | null> => {
+    const { data, error } = await supabase.functions.invoke("resolve-username", {
+      body: { username: uname },
+    });
+    if (error) {
+      // Edge function returned non-2xx
+      const msg = (error as { message?: string }).message || "Lookup failed";
+      toast.error(msg.includes("404") ? "No account with that username" : msg);
+      return null;
+    }
+    if (!data?.email) {
+      toast.error("No account with that username");
+      return null;
+    }
+    return data.email as string;
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     const gate = checkLoginAllowed();
@@ -48,7 +70,27 @@ const Auth = () => {
       triggerShake();
       return;
     }
-    const parsed = signInSchema.safeParse({ email, password });
+
+    let resolvedEmail = email;
+
+    if (signInTab === "username") {
+      const u = usernameSchema.safeParse(username);
+      if (!u.success) {
+        toast.error(u.error.errors[0].message);
+        triggerShake();
+        return;
+      }
+      setLoading(true);
+      const found = await resolveUsernameToEmail(u.data);
+      setLoading(false);
+      if (!found) {
+        triggerShake();
+        return;
+      }
+      resolvedEmail = found;
+    }
+
+    const parsed = signInSchema.safeParse({ email: resolvedEmail, password });
     if (!parsed.success) {
       toast.error(parsed.error.errors[0].message);
       triggerShake();
@@ -94,8 +136,8 @@ const Auth = () => {
       triggerShake();
       return;
     }
-    toast.success("Account created. You're all set!");
-    navigate("/", { replace: true });
+    toast.success("Account created. Let's set up your profile!");
+    navigate("/welcome", { replace: true });
   };
 
   const handleReset = async (e: React.FormEvent) => {
@@ -171,16 +213,46 @@ const Auth = () => {
 
         {mode === "signin" && (
           <form onSubmit={handleSignIn} className="space-y-4 animate-fade-in">
-            <Field
-              id="email"
-              label="Email"
-              icon={<Mail className="h-4 w-4" />}
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(v) => setEmail(v)}
-              placeholder="you@example.com"
-            />
+            {/* Email / Username tabs */}
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+              <TabBtn
+                active={signInTab === "email"}
+                onClick={() => setSignInTab("email")}
+                icon={<Mail className="h-4 w-4" />}
+                label="Email"
+              />
+              <TabBtn
+                active={signInTab === "username"}
+                onClick={() => setSignInTab("username")}
+                icon={<AtSign className="h-4 w-4" />}
+                label="Username"
+              />
+            </div>
+
+            {signInTab === "email" ? (
+              <Field
+                id="email"
+                label="Email"
+                icon={<Mail className="h-4 w-4" />}
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(v) => setEmail(v)}
+                placeholder="you@example.com"
+              />
+            ) : (
+              <Field
+                id="username"
+                label="Username"
+                icon={<AtSign className="h-4 w-4" />}
+                autoComplete="username"
+                value={username}
+                onChange={(v) =>
+                  setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                }
+                placeholder="janedoe"
+              />
+            )}
             <Field
               id="password"
               label="Password"
@@ -267,6 +339,9 @@ const Auth = () => {
             />
             <SubmitButton loading={loading}>Create account</SubmitButton>
             <p className="text-center text-sm text-muted-foreground">
+              You'll pick your username next.
+            </p>
+            <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <button
                 type="button"
@@ -306,8 +381,8 @@ const Auth = () => {
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
           By continuing you agree to our{" "}
-          <Link to="#" className="underline">Terms</Link> and{" "}
-          <Link to="#" className="underline">Privacy Policy</Link>.
+          <Link to="/terms" className="underline">Terms</Link> and{" "}
+          <Link to="/privacy" className="underline">Privacy Policy</Link>.
         </p>
       </div>
     </div>
@@ -315,6 +390,32 @@ const Auth = () => {
 };
 
 // ---------------- helpers ----------------
+
+const TabBtn = ({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      "flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all",
+      active
+        ? "bg-background text-foreground shadow-sm"
+        : "text-muted-foreground hover:text-foreground"
+    )}
+  >
+    {icon}
+    {label}
+  </button>
+);
 
 const Field = ({
   id,
