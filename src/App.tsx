@@ -8,13 +8,16 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { MyProfileProvider } from "@/hooks/useMyProfile";
 import { ProtectedRoute, PublicOnlyRoute } from "@/components/ProtectedRoute";
 import { BottomNav } from "@/components/BottomNav";
+import { AppLockGate } from "@/components/AppLockGate";
 import Auth from "./pages/Auth";
+import Welcome from "./pages/Welcome";
 import ResetPassword from "./pages/ResetPassword";
 import Chats from "./pages/Chats";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
+import AppLockSettings from "./pages/AppLockSettings";
 import BlockedUsers from "./pages/BlockedUsers";
 import PublicProfile from "./pages/PublicProfile";
 import SearchUsers from "./pages/SearchUsers";
@@ -33,6 +36,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <MyProfileProvider>
+              <AppLockGate>
               <Routes>
                 <Route
                   path="/auth"
@@ -45,6 +49,15 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+
+                <Route
+                  path="/welcome"
+                  element={
+                    <ProtectedRoute>
+                      <Welcome />
+                    </ProtectedRoute>
+                  }
+                />
 
                 <Route
                   path="/"
@@ -110,9 +123,18 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/settings/app-lock"
+                  element={
+                    <ProtectedRoute>
+                      <AppLockSettings />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <BottomNav />
+              </AppLockGate>
             </MyProfileProvider>
           </AuthProvider>
         </BrowserRouter>
