@@ -215,7 +215,7 @@ const Welcome = () => {
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs">
               {checking && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               {!checking && available === true && (
-                <span className="text-emerald-500">✓ available</span>
+                <span className="text-primary">✓ available</span>
               )}
               {!checking && available === false && (
                 <span className="text-destructive">taken</span>
