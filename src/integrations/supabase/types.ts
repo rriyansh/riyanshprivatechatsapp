@@ -84,10 +84,13 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_for_everyone: boolean
+          deleted_for_sender: boolean
           id: string
           media_duration_ms: number | null
           media_path: string | null
           receiver_id: string
+          reply_to_id: string | null
           seen: boolean
           sender_id: string
           type: string
@@ -95,10 +98,13 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          deleted_for_everyone?: boolean
+          deleted_for_sender?: boolean
           id?: string
           media_duration_ms?: number | null
           media_path?: string | null
           receiver_id: string
+          reply_to_id?: string | null
           seen?: boolean
           sender_id: string
           type?: string
@@ -106,15 +112,26 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          deleted_for_everyone?: boolean
+          deleted_for_sender?: boolean
           id?: string
           media_duration_ms?: number | null
           media_path?: string | null
           receiver_id?: string
+          reply_to_id?: string | null
           seen?: boolean
           sender_id?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
