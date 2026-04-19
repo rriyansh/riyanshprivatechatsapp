@@ -21,6 +21,7 @@ import AppLockSettings from "./pages/AppLockSettings";
 import BlockedUsers from "./pages/BlockedUsers";
 import PublicProfile from "./pages/PublicProfile";
 import SearchUsers from "./pages/SearchUsers";
+import ShareLink from "./pages/ShareLink";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound.tsx";
@@ -128,6 +129,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <AppLockSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/pc/:username"
+                  element={
+                    <ProtectedRoute>
+                      <ShareLink />
                     </ProtectedRoute>
                   }
                 />

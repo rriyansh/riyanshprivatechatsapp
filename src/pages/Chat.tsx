@@ -1,29 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Send, Check, CheckCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyProfile } from "@/hooks/useMyProfile";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ImageAttachButton } from "@/components/chat/ImageAttachButton";
 import { ImagePreviewDialog } from "@/components/chat/ImagePreviewDialog";
 import { VoiceRecorder } from "@/components/chat/VoiceRecorder";
-import { ImageBubble, VoiceBubble } from "@/components/chat/MediaMessage";
 import { compressImage } from "@/lib/imageCompression";
-
-type Message = {
-  id: string;
-  sender_id: string;
-  receiver_id: string;
-  content: string;
-  type: string;
-  seen: boolean;
-  created_at: string;
-  media_path: string | null;
-  media_duration_ms: number | null;
-};
+import { MessageBubble, type ChatMessage } from "@/components/chat/MessageBubble";
+import {
+  MessageActionsSheet,
+  type MessageAction,
+} from "@/components/chat/MessageActionsSheet";
+import {
+  ReplyComposerPreview,
+  type ReplyTarget,
+} from "@/components/chat/ReplyPreview";
+import {
+  ForwardDialog,
+  type ForwardPayload,
+} from "@/components/chat/ForwardDialog";
 
 type Profile = {
   user_id: string;
@@ -39,10 +40,11 @@ const MAX_VOICE_MB = 5;
 const Chat = () => {
   const { partnerId } = useParams<{ partnerId: string }>();
   const { user } = useAuth();
+  const { profile: myProfile } = useMyProfile();
   const navigate = useNavigate();
 
   const [partner, setPartner] = useState<Profile | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -50,6 +52,10 @@ const Chat = () => {
 
   const [pendingImage, setPendingImage] = useState<File | null>(null);
   const [imageSending, setImageSending] = useState(false);
+
+  const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
+  const [actionTarget, setActionTarget] = useState<ChatMessage | null>(null);
+  const [forwardPayload, setForwardPayload] = useState<ForwardPayload | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -60,6 +66,10 @@ const Chat = () => {
     const [a, b] = [user.id, partnerId].sort();
     return `dm:${a}:${b}`;
   }, [user?.id, partnerId]);
+
+  const partnerName =
+    partner?.display_name || partner?.username || "User";
+  const myName = myProfile?.display_name || myProfile?.username || "You";
 
   // Load partner profile + messages
   useEffect(() => {
@@ -86,7 +96,7 @@ const Chat = () => {
       if (pErr) toast.error(pErr.message);
       if (mErr) toast.error(mErr.message);
       setPartner(prof || null);
-      setMessages((msgs || []) as Message[]);
+      setMessages((msgs || []) as ChatMessage[]);
       setLoading(false);
 
       const unseenIds = (msgs || [])
@@ -114,7 +124,7 @@ const Chat = () => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          const m = payload.new as Message;
+          const m = payload.new as ChatMessage;
           const involvesPair =
             (m.sender_id === user.id && m.receiver_id === partnerId) ||
             (m.sender_id === partnerId && m.receiver_id === user.id);
@@ -129,7 +139,7 @@ const Chat = () => {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "messages" },
         (payload) => {
-          const m = payload.new as Message;
+          const m = payload.new as ChatMessage;
           setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, ...m } : x)));
         }
       )
@@ -165,6 +175,13 @@ const Chat = () => {
     });
   };
 
+  const buildReplyTarget = (m: ChatMessage): ReplyTarget => ({
+    id: m.id,
+    authorName: m.sender_id === user?.id ? myName : partnerName,
+    type: m.type,
+    content: m.content,
+  });
+
   const handleSendText = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const content = text.trim();
@@ -175,7 +192,10 @@ const Chat = () => {
     }
     setSending(true);
     setText("");
-    const optimistic: Message = {
+    const replyId = replyTarget?.id ?? null;
+    setReplyTarget(null);
+
+    const optimistic: ChatMessage = {
       id: `temp-${crypto.randomUUID()}`,
       sender_id: user.id,
       receiver_id: partnerId,
@@ -185,12 +205,21 @@ const Chat = () => {
       created_at: new Date().toISOString(),
       media_path: null,
       media_duration_ms: null,
+      reply_to_id: replyId,
+      deleted_for_sender: false,
+      deleted_for_everyone: false,
     };
     setMessages((prev) => [...prev, optimistic]);
 
     const { data, error } = await supabase
       .from("messages")
-      .insert({ sender_id: user.id, receiver_id: partnerId, content, type: "text" })
+      .insert({
+        sender_id: user.id,
+        receiver_id: partnerId,
+        content,
+        type: "text",
+        reply_to_id: replyId,
+      })
       .select("*")
       .single();
 
@@ -202,7 +231,7 @@ const Chat = () => {
       return;
     }
     setMessages((prev) =>
-      prev.map((m) => (m.id === optimistic.id ? (data as Message) : m))
+      prev.map((m) => (m.id === optimistic.id ? (data as ChatMessage) : m))
     );
   };
 
@@ -232,15 +261,18 @@ const Chat = () => {
         .upload(path, blob, { contentType: mime, upsert: false });
       if (upErr) throw upErr;
 
+      const replyId = replyTarget?.id ?? null;
+      setReplyTarget(null);
+
       const { error: insErr } = await supabase.from("messages").insert({
         sender_id: user.id,
         receiver_id: partnerId,
         content: "",
         type: "image",
         media_path: path,
+        reply_to_id: replyId,
       });
       if (insErr) {
-        // rollback storage
         await supabase.storage.from("chat-media").remove([path]);
         throw insErr;
       }
@@ -266,6 +298,9 @@ const Chat = () => {
       .upload(path, blob, { contentType: mime, upsert: false });
     if (upErr) throw upErr;
 
+    const replyId = replyTarget?.id ?? null;
+    setReplyTarget(null);
+
     const { error: insErr } = await supabase.from("messages").insert({
       sender_id: user.id,
       receiver_id: partnerId,
@@ -273,6 +308,7 @@ const Chat = () => {
       type: "voice",
       media_path: path,
       media_duration_ms: Math.round(durationMs),
+      reply_to_id: replyId,
     });
     if (insErr) {
       await supabase.storage.from("chat-media").remove([path]);
@@ -280,7 +316,99 @@ const Chat = () => {
     }
   };
 
-  const grouped = useMemo(() => groupByDay(messages), [messages]);
+  const scrollToOriginal = (id: string) => {
+    const el = document.getElementById(`msg-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-primary", "rounded-3xl");
+    window.setTimeout(() => {
+      el.classList.remove("ring-2", "ring-primary", "rounded-3xl");
+    }, 1400);
+  };
+
+  const handleAction = async (a: MessageAction) => {
+    const m = actionTarget;
+    setActionTarget(null);
+    if (!m || !user) return;
+
+    if (a === "reply") {
+      setReplyTarget(buildReplyTarget(m));
+      return;
+    }
+    if (a === "copy") {
+      try {
+        await navigator.clipboard.writeText(m.content);
+        toast.success("Copied");
+      } catch {
+        toast.error("Could not copy");
+      }
+      return;
+    }
+    if (a === "forward") {
+      setForwardPayload({
+        content: m.content,
+        type: m.type,
+        media_path: m.media_path,
+        media_duration_ms: m.media_duration_ms,
+      });
+      return;
+    }
+    if (a === "delete-me") {
+      // Hide locally only — keep DB row; we mark deleted_for_sender only if it's mine
+      if (m.sender_id === user.id) {
+        const { error } = await supabase
+          .from("messages")
+          .update({ deleted_for_sender: true })
+          .eq("id", m.id);
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+      }
+      setMessages((prev) => prev.filter((x) => x.id !== m.id));
+      toast.success("Deleted for you");
+      return;
+    }
+    if (a === "delete-everyone") {
+      if (m.sender_id !== user.id) return;
+      const { error } = await supabase
+        .from("messages")
+        .update({ deleted_for_everyone: true, content: "", media_path: null })
+        .eq("id", m.id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Deleted for everyone");
+    }
+  };
+
+  const visibleMessages = useMemo(
+    () =>
+      messages.filter(
+        (m) => !(m.sender_id === user?.id && m.deleted_for_sender)
+      ),
+    [messages, user?.id]
+  );
+
+  const messageMap = useMemo(() => {
+    const map = new Map<string, ChatMessage>();
+    messages.forEach((m) => map.set(m.id, m));
+    return map;
+  }, [messages]);
+
+  const grouped = useMemo(() => groupByDay(visibleMessages), [visibleMessages]);
+
+  const copyShareLink = async () => {
+    if (!myProfile?.username) return;
+    const url = `${window.location.origin}/pc/${myProfile.username}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Your share link copied");
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
 
   return (
     <div className="mx-auto flex h-[100dvh] w-full max-w-2xl flex-col">
@@ -295,7 +423,10 @@ const Chat = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <Link to="/" className="flex min-w-0 flex-1 items-center gap-3">
+        <Link
+          to={partner?.username ? `/u/${partner.username}` : "/"}
+          className="flex min-w-0 flex-1 items-center gap-3"
+        >
           <Avatar className="h-10 w-10">
             <AvatarImage src={partner?.avatar_url ?? undefined} />
             <AvatarFallback>
@@ -315,6 +446,16 @@ const Chat = () => {
             </p>
           </div>
         </Link>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="rounded-full"
+          onClick={copyShareLink}
+          aria-label="Copy your share link"
+          title="Copy your share link"
+        >
+          <Share2 className="h-5 w-5" />
+        </Button>
       </header>
 
       {/* Messages */}
@@ -323,7 +464,7 @@ const Chat = () => {
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : visibleMessages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
             <p>Say hi 👋</p>
           </div>
@@ -338,42 +479,23 @@ const Chat = () => {
               {items.map((m, idx) => {
                 const mine = m.sender_id === user?.id;
                 const prev = items[idx - 1];
-                const isGrouped = prev && prev.sender_id === m.sender_id;
-                const isMedia = m.type === "image" || m.type === "voice";
+                const isGrouped = !!prev && prev.sender_id === m.sender_id;
+                const replyTo = m.reply_to_id
+                  ? messageMap.get(m.reply_to_id) ?? null
+                  : null;
                 return (
-                  <div key={m.id} className={`mb-1 flex ${mine ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[78%] animate-bubble-in rounded-3xl text-[15px] leading-snug ${
-                        mine ? "bubble-sender rounded-br-md" : "bubble-receiver rounded-bl-md"
-                      } ${isGrouped ? "mt-0.5" : "mt-2"} ${
-                        m.type === "image" ? "p-1" : "px-4 py-2"
-                      }`}
-                    >
-                      {m.type === "image" && m.media_path ? (
-                        <ImageBubble path={m.media_path} />
-                      ) : m.type === "voice" && m.media_path ? (
-                        <VoiceBubble
-                          path={m.media_path}
-                          durationMs={m.media_duration_ms}
-                          mine={mine}
-                        />
-                      ) : (
-                        <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                      )}
-                      <div
-                        className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
-                          mine ? "text-primary-foreground/80" : "text-muted-foreground"
-                        } ${m.type === "image" ? "px-2 pb-1" : ""}`}
-                      >
-                        <span>{format(new Date(m.created_at), "p")}</span>
-                        {mine &&
-                          (m.seen ? (
-                            <CheckCheck className="h-3.5 w-3.5" />
-                          ) : (
-                            <Check className="h-3.5 w-3.5" />
-                          ))}
-                      </div>
-                    </div>
+                  <div key={m.id} id={`msg-${m.id}`} className="transition-shadow">
+                    <MessageBubble
+                      m={m}
+                      mine={mine}
+                      isGrouped={isGrouped}
+                      replyTo={replyTo}
+                      partnerName={partnerName}
+                      myName={myName}
+                      onReply={(msg) => setReplyTarget(buildReplyTarget(msg))}
+                      onLongPress={(msg) => setActionTarget(msg)}
+                      onScrollToOriginal={scrollToOriginal}
+                    />
                   </div>
                 );
               })}
@@ -394,6 +516,12 @@ const Chat = () => {
 
       {/* Composer */}
       <div className="glass sticky bottom-0 z-20 rounded-t-3xl px-3 py-3">
+        {replyTarget && (
+          <ReplyComposerPreview
+            target={replyTarget}
+            onClear={() => setReplyTarget(null)}
+          />
+        )}
         <form onSubmit={handleSendText} className="flex items-end gap-2">
           <ImageAttachButton onPick={handlePickImage} disabled={sending} />
           <textarea
@@ -431,12 +559,28 @@ const Chat = () => {
         onSend={sendImage}
         sending={imageSending}
       />
+
+      <MessageActionsSheet
+        open={!!actionTarget}
+        onOpenChange={(v) => !v && setActionTarget(null)}
+        mine={actionTarget?.sender_id === user?.id}
+        hasText={
+          !!actionTarget && actionTarget.type === "text" && !!actionTarget.content
+        }
+        onAction={handleAction}
+      />
+
+      <ForwardDialog
+        open={!!forwardPayload}
+        onOpenChange={(v) => !v && setForwardPayload(null)}
+        payload={forwardPayload}
+      />
     </div>
   );
 };
 
-const groupByDay = (msgs: Message[]): [string, Message[]][] => {
-  const out = new Map<string, Message[]>();
+const groupByDay = (msgs: ChatMessage[]): [string, ChatMessage[]][] => {
+  const out = new Map<string, ChatMessage[]>();
   msgs.forEach((m) => {
     const d = new Date(m.created_at);
     const label = isToday(d)
