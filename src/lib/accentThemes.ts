@@ -17,41 +17,42 @@ type AccentPalette = {
   dark: { primary: string; glow: string };
 };
 
+// X-inspired monochrome accents — all greyscale, no color.
 export const ACCENTS: Record<AccentKey, AccentPalette> = {
   blue: {
-    label: "iMessage Blue",
-    light: { primary: "211 100% 50%", glow: "215 100% 62%" },
-    dark: { primary: "211 100% 55%", glow: "215 100% 65%" },
+    label: "Ink",
+    light: { primary: "0 0% 0%", glow: "0 0% 18%" },
+    dark: { primary: "0 0% 100%", glow: "0 0% 85%" },
   },
   purple: {
-    label: "Lavender",
-    light: { primary: "262 83% 58%", glow: "270 90% 70%" },
-    dark: { primary: "262 90% 65%", glow: "270 95% 72%" },
+    label: "Smoke",
+    light: { primary: "0 0% 22%", glow: "0 0% 36%" },
+    dark: { primary: "0 0% 88%", glow: "0 0% 72%" },
   },
   pink: {
-    label: "Sunset Pink",
-    light: { primary: "335 85% 58%", glow: "345 90% 68%" },
-    dark: { primary: "335 90% 62%", glow: "345 95% 70%" },
+    label: "Silver",
+    light: { primary: "0 0% 38%", glow: "0 0% 52%" },
+    dark: { primary: "0 0% 78%", glow: "0 0% 62%" },
   },
   green: {
-    label: "Mint",
-    light: { primary: "152 70% 42%", glow: "160 75% 52%" },
-    dark: { primary: "152 70% 48%", glow: "160 75% 56%" },
+    label: "Steel",
+    light: { primary: "0 0% 28%", glow: "0 0% 44%" },
+    dark: { primary: "0 0% 82%", glow: "0 0% 68%" },
   },
   orange: {
-    label: "Tangerine",
-    light: { primary: "22 95% 55%", glow: "30 100% 62%" },
-    dark: { primary: "22 95% 58%", glow: "30 100% 65%" },
+    label: "Charcoal",
+    light: { primary: "0 0% 14%", glow: "0 0% 28%" },
+    dark: { primary: "0 0% 92%", glow: "0 0% 78%" },
   },
   red: {
-    label: "Crimson",
-    light: { primary: "0 80% 55%", glow: "8 90% 62%" },
-    dark: { primary: "0 80% 58%", glow: "8 90% 65%" },
+    label: "Onyx",
+    light: { primary: "0 0% 8%", glow: "0 0% 22%" },
+    dark: { primary: "0 0% 96%", glow: "0 0% 80%" },
   },
   graphite: {
     label: "Graphite",
-    light: { primary: "222 20% 28%", glow: "222 18% 38%" },
-    dark: { primary: "220 12% 78%", glow: "220 12% 88%" },
+    light: { primary: "0 0% 32%", glow: "0 0% 46%" },
+    dark: { primary: "0 0% 80%", glow: "0 0% 66%" },
   },
 };
 
