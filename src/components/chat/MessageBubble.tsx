@@ -141,7 +141,7 @@ export const MessageBubble = ({
   // Tick logic: seen → blue double, delivered → grey double, sent → single
   const tick = mine && !isDeletedForEveryone && (
     m.seen ? (
-      <CheckCheck className="h-3.5 w-3.5 text-sky-300" />
+      <CheckCheck className="h-3.5 w-3.5 text-primary-foreground" />
     ) : m.delivered_at ? (
       <CheckCheck className="h-3.5 w-3.5" />
     ) : (
