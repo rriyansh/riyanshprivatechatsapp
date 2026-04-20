@@ -418,6 +418,20 @@ const Chat = () => {
 
   const grouped = useMemo(() => groupByDay(visibleMessages), [visibleMessages]);
 
+  const visibleIds = useMemo(() => visibleMessages.map((m) => m.id), [visibleMessages]);
+  const { byMessage: reactionsByMessage, toggle: toggleReaction } = useReactions(
+    visibleIds,
+    partnerId
+  );
+  const myReactedForActionTarget = useMemo(() => {
+    if (!actionTarget || !user) return new Set<string>();
+    return new Set(
+      (reactionsByMessage[actionTarget.id] || [])
+        .filter((r) => r.user_id === user.id)
+        .map((r) => r.emoji)
+    );
+  }, [actionTarget, reactionsByMessage, user]);
+
   const copyShareLink = async () => {
     if (!myProfile?.username) return;
     const url = `${window.location.origin}/pc/${myProfile.username}`;
@@ -511,9 +525,12 @@ const Chat = () => {
                       replyTo={replyTo}
                       partnerName={partnerName}
                       myName={myName}
+                      reactions={reactionsByMessage[m.id] || []}
+                      myUserId={user?.id}
                       onReply={(msg) => setReplyTarget(buildReplyTarget(msg))}
                       onLongPress={(msg) => setActionTarget(msg)}
                       onScrollToOriginal={scrollToOriginal}
+                      onToggleReaction={toggleReaction}
                     />
                   </div>
                 );
@@ -586,6 +603,10 @@ const Chat = () => {
         hasText={
           !!actionTarget && actionTarget.type === "text" && !!actionTarget.content
         }
+        myReactedEmojis={myReactedForActionTarget}
+        onReact={(emoji) => {
+          if (actionTarget) toggleReaction(actionTarget.id, emoji);
+        }}
         onAction={handleAction}
       />
 
