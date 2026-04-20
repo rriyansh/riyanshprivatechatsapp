@@ -5,6 +5,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { ReactionBar } from "@/components/chat/ReactionBar";
 
 export type MessageAction =
   | "reply"
@@ -18,12 +19,16 @@ export const MessageActionsSheet = ({
   onOpenChange,
   mine,
   hasText,
+  myReactedEmojis,
+  onReact,
   onAction,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   mine: boolean;
   hasText: boolean;
+  myReactedEmojis: Set<string>;
+  onReact: (emoji: string) => void;
   onAction: (a: MessageAction) => void;
 }) => {
   const Item = ({
@@ -56,6 +61,13 @@ export const MessageActionsSheet = ({
             Message options
           </SheetTitle>
         </SheetHeader>
+        <ReactionBar
+          myReactedEmojis={myReactedEmojis}
+          onPick={(e) => {
+            onReact(e);
+            onOpenChange(false);
+          }}
+        />
         <div className="space-y-1">
           <Item icon={Reply} label="Reply" onClick={() => onAction("reply")} />
           <Item
