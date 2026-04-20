@@ -25,6 +25,7 @@ import {
   ForwardDialog,
   type ForwardPayload,
 } from "@/components/chat/ForwardDialog";
+import { useReactions } from "@/hooks/useReactions";
 
 type Profile = {
   user_id: string;
@@ -99,6 +100,16 @@ const Chat = () => {
       setMessages((msgs || []) as ChatMessage[]);
       setLoading(false);
 
+      // Mark anything sent to me as delivered (if not already) and seen on open
+      const undeliveredIds = (msgs || [])
+        .filter((m) => m.receiver_id === user.id && !m.delivered_at)
+        .map((m) => m.id);
+      if (undeliveredIds.length > 0) {
+        await supabase
+          .from("messages")
+          .update({ delivered_at: new Date().toISOString() })
+          .in("id", undeliveredIds);
+      }
       const unseenIds = (msgs || [])
         .filter((m) => m.receiver_id === user.id && !m.seen)
         .map((m) => m.id);
@@ -130,8 +141,16 @@ const Chat = () => {
             (m.sender_id === partnerId && m.receiver_id === user.id);
           if (!involvesPair) return;
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-          if (m.receiver_id === user.id && !m.seen) {
-            supabase.from("messages").update({ seen: true }).eq("id", m.id).then(() => {});
+          if (m.receiver_id === user.id) {
+            // Mark delivered immediately, then seen since chat is open
+            supabase
+              .from("messages")
+              .update({
+                delivered_at: m.delivered_at ?? new Date().toISOString(),
+                seen: true,
+              })
+              .eq("id", m.id)
+              .then(() => {});
           }
         }
       )
