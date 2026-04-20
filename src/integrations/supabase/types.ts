@@ -80,12 +80,45 @@ export type Database = {
         }
         Relationships: []
       }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
           created_at: string
           deleted_for_everyone: boolean
           deleted_for_sender: boolean
+          delivered_at: string | null
           id: string
           media_duration_ms: number | null
           media_path: string | null
@@ -100,6 +133,7 @@ export type Database = {
           created_at?: string
           deleted_for_everyone?: boolean
           deleted_for_sender?: boolean
+          delivered_at?: string | null
           id?: string
           media_duration_ms?: number | null
           media_path?: string | null
@@ -114,6 +148,7 @@ export type Database = {
           created_at?: string
           deleted_for_everyone?: boolean
           deleted_for_sender?: boolean
+          delivered_at?: string | null
           id?: string
           media_duration_ms?: number | null
           media_path?: string | null
