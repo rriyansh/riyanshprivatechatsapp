@@ -6,8 +6,10 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Heart,
   Lock,
   LogOut,
+  Mail,
   Moon,
   Palette,
   ShieldCheck,
@@ -195,6 +197,25 @@ const Settings = () => {
           <Link to="/terms" className="block border-t border-border">
             <Row icon={<FileText className="h-4 w-4" />} label="Terms of Service" chevron />
           </Link>
+        </Section>
+
+        {/* Developer credits */}
+        <Section title="Developer">
+          <div className="flex items-center gap-3 px-4 py-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+              <Heart className="h-5 w-5 fill-current" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">Built by Riyansh</p>
+              <p className="text-xs text-muted-foreground">PrivateChats · v1.0.0</p>
+            </div>
+          </div>
+          <a
+            href="mailto:folsriyansh@gmail.com?subject=PrivateChats%20Support"
+            className="block border-t border-border"
+          >
+            <Row icon={<Mail className="h-4 w-4" />} label="Contact support" value="folsriyansh@gmail.com" chevron />
+          </a>
         </Section>
 
         <Button
