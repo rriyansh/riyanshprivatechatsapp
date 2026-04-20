@@ -8,120 +8,117 @@
 
 @layer base {
   :root {
-    /* iOS-light feel */
-    --background: 220 25% 98%;
-    --foreground: 222 30% 12%;
+    /* X-inspired light mode: pure white surfaces, near-black ink */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 30% 12%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 30% 12%;
+    --popover-foreground: 0 0% 0%;
 
-    /* iMessage blue */
-    --primary: 211 100% 50%;
+    /* Monochrome primary — pure black */
+    --primary: 0 0% 0%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 215 100% 62%;
+    --primary-glow: 0 0% 18%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 30% 12%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 42%;
 
-    --accent: 220 14% 94%;
-    --accent-foreground: 222 30% 12%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 0%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 0% 12%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 0 0% 0%;
     --success-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 211 100% 50%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 0% 0%;
 
     --radius: 1rem;
 
-    /* iOS receiver bubble */
-    --bubble-receiver: 220 14% 93%;
-    --bubble-receiver-foreground: 222 30% 12%;
+    /* Receiver bubble — soft grey */
+    --bubble-receiver: 0 0% 94%;
+    --bubble-receiver-foreground: 0 0% 0%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-bg: radial-gradient(1200px 600px at 10% -10%, hsl(211 100% 96%), transparent 60%),
-                   radial-gradient(800px 500px at 100% 0%, hsl(280 100% 97%), transparent 60%),
-                   linear-gradient(180deg, hsl(220 25% 99%), hsl(220 25% 97%));
-    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.7), hsl(0 0% 100% / 0.4));
+    /* Flat monochrome gradients (no color) */
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 0%), hsl(0 0% 18%));
+    --gradient-bg: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 99%));
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.8), hsl(0 0% 100% / 0.5));
 
-    /* Shadows */
-    --shadow-elegant: 0 10px 40px -10px hsl(211 100% 50% / 0.25);
-    --shadow-soft: 0 1px 2px hsl(220 30% 12% / 0.04), 0 8px 24px -8px hsl(220 30% 12% / 0.08);
-    --shadow-bubble: 0 1px 1px hsl(220 30% 12% / 0.06);
+    /* Sharper, neutral shadows */
+    --shadow-elegant: 0 10px 40px -10px hsl(0 0% 0% / 0.18);
+    --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.04), 0 8px 24px -8px hsl(0 0% 0% / 0.08);
+    --shadow-bubble: 0 1px 1px hsl(0 0% 0% / 0.06);
 
-    /* Motion */
     --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 12%;
+    --sidebar-primary: 0 0% 0%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 0 0% 0%;
   }
 
   .dark {
-    --background: 222 30% 7%;
-    --foreground: 210 40% 98%;
+    /* X-inspired dark mode: pure black surfaces, white ink */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: 222 28% 10%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 222 28% 10%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 211 100% 55%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 215 100% 65%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --primary-glow: 0 0% 85%;
 
-    --secondary: 222 20% 15%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 222 20% 15%;
-    --muted-foreground: 220 10% 65%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 62%;
 
-    --accent: 222 20% 18%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 0% 90%;
+    --destructive-foreground: 0 0% 0%;
 
-    --success: 142 65% 50%;
-    --success-foreground: 0 0% 100%;
+    --success: 0 0% 100%;
+    --success-foreground: 0 0% 0%;
 
-    --border: 222 20% 18%;
-    --input: 222 20% 18%;
-    --ring: 211 100% 55%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 0 0% 100%;
 
-    --bubble-receiver: 222 20% 18%;
-    --bubble-receiver-foreground: 210 40% 98%;
+    --bubble-receiver: 0 0% 12%;
+    --bubble-receiver-foreground: 0 0% 100%;
 
-    --gradient-bg: radial-gradient(1200px 600px at 10% -10%, hsl(211 100% 18% / 0.5), transparent 60%),
-                   radial-gradient(800px 500px at 100% 0%, hsl(280 80% 18% / 0.5), transparent 60%),
-                   linear-gradient(180deg, hsl(222 30% 8%), hsl(222 30% 6%));
-    --gradient-glass: linear-gradient(135deg, hsl(222 28% 14% / 0.7), hsl(222 28% 12% / 0.5));
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 100%), hsl(0 0% 85%));
+    --gradient-bg: linear-gradient(180deg, hsl(0 0% 0%), hsl(0 0% 2%));
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 6% / 0.8), hsl(0 0% 4% / 0.5));
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 0 0% 100%;
   }
 }
 
