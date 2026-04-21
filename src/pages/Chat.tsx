@@ -539,7 +539,11 @@ const Chat = () => {
       </header>
 
       {/* Messages */}
-      <div ref={scrollRef} className="scroll-clean flex-1 overflow-y-auto px-4 py-4">
+      <div
+        ref={scrollRef}
+        className="scroll-clean flex-1 overflow-y-auto px-4 py-4"
+        style={wallpaperStyle}
+      >
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
