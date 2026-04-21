@@ -509,12 +509,33 @@ const Chat = () => {
           size="icon"
           variant="ghost"
           className="rounded-full"
-          onClick={copyShareLink}
-          aria-label="Copy your share link"
-          title="Copy your share link"
+          onClick={() => partnerId && startCall(partnerId)}
+          disabled={callStatus !== "idle" || !partnerId}
+          aria-label="Voice call"
+          title="Voice call"
         >
-          <Share2 className="h-5 w-5" />
+          <Phone className="h-5 w-5" />
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full"
+              aria-label="Chat options"
+            >
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52 rounded-2xl">
+            <DropdownMenuItem onClick={() => setWallpaperOpen(true)}>
+              <ImageIcon className="mr-2 h-4 w-4" /> Chat wallpaper
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={copyShareLink}>
+              <Share2 className="mr-2 h-4 w-4" /> Copy share link
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {/* Messages */}
