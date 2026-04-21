@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { resetIntro } from "@/components/IntroSplash";
 
 type AuthContextValue = {
   session: Session | null;
@@ -47,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [session?.user?.id]);
 
   const signOut = async () => {
+    resetIntro();
     await supabase.auth.signOut();
   };
 

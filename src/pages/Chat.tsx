@@ -1,8 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Send, Loader2, Share2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  Share2,
+  Phone,
+  MoreVertical,
+  Image as ImageIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProfile } from "@/hooks/useMyProfile";
@@ -26,6 +40,9 @@ import {
   type ForwardPayload,
 } from "@/components/chat/ForwardDialog";
 import { useReactions } from "@/hooks/useReactions";
+import { WallpaperDialog } from "@/components/chat/WallpaperDialog";
+import { getWallpaper, resolveWallpaperStyle } from "@/lib/chatWallpaper";
+import { useCall } from "@/components/call/CallProvider";
 
 type Profile = {
   user_id: string;
@@ -57,6 +74,15 @@ const Chat = () => {
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [actionTarget, setActionTarget] = useState<ChatMessage | null>(null);
   const [forwardPayload, setForwardPayload] = useState<ForwardPayload | null>(null);
+
+  const [wallpaperOpen, setWallpaperOpen] = useState(false);
+  const [wallpaperKey, setWallpaperKey] = useState(0);
+  const wallpaperStyle = useMemo(
+    () => (partnerId ? resolveWallpaperStyle(getWallpaper("dm", partnerId)) : {}),
+    [partnerId, wallpaperKey]
+  );
+
+  const { startCall, status: callStatus } = useCall();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -483,16 +509,41 @@ const Chat = () => {
           size="icon"
           variant="ghost"
           className="rounded-full"
-          onClick={copyShareLink}
-          aria-label="Copy your share link"
-          title="Copy your share link"
+          onClick={() => partnerId && startCall(partnerId)}
+          disabled={callStatus !== "idle" || !partnerId}
+          aria-label="Voice call"
+          title="Voice call"
         >
-          <Share2 className="h-5 w-5" />
+          <Phone className="h-5 w-5" />
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full"
+              aria-label="Chat options"
+            >
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52 rounded-2xl">
+            <DropdownMenuItem onClick={() => setWallpaperOpen(true)}>
+              <ImageIcon className="mr-2 h-4 w-4" /> Chat wallpaper
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={copyShareLink}>
+              <Share2 className="mr-2 h-4 w-4" /> Copy share link
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {/* Messages */}
-      <div ref={scrollRef} className="scroll-clean flex-1 overflow-y-auto px-4 py-4">
+      <div
+        ref={scrollRef}
+        className="scroll-clean flex-1 overflow-y-auto px-4 py-4"
+        style={wallpaperStyle}
+      >
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -615,6 +666,16 @@ const Chat = () => {
         onOpenChange={(v) => !v && setForwardPayload(null)}
         payload={forwardPayload}
       />
+
+      {partnerId && (
+        <WallpaperDialog
+          open={wallpaperOpen}
+          onOpenChange={setWallpaperOpen}
+          type="dm"
+          id={partnerId}
+          onChange={() => setWallpaperKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 };

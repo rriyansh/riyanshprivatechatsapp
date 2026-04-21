@@ -35,6 +35,39 @@ export type Database = {
         }
         Relationships: []
       }
+      call_signals: {
+        Row: {
+          call_id: string
+          created_at: string
+          expires_at: string
+          from_user: string
+          id: string
+          kind: string
+          payload: Json | null
+          to_user: string
+        }
+        Insert: {
+          call_id: string
+          created_at?: string
+          expires_at?: string
+          from_user: string
+          id?: string
+          kind: string
+          payload?: Json | null
+          to_user: string
+        }
+        Update: {
+          call_id?: string
+          created_at?: string
+          expires_at?: string
+          from_user?: string
+          id?: string
+          kind?: string
+          payload?: Json | null
+          to_user?: string
+        }
+        Relationships: []
+      }
       chat_themes: {
         Row: {
           accent: string
@@ -77,6 +110,113 @@ export type Database = {
           followee_id?: string
           follower_id?: string
           id?: string
+        }
+        Relationships: []
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_messages: {
+        Row: {
+          content: string
+          created_at: string
+          deleted_for_everyone: boolean
+          group_id: string
+          id: string
+          reply_to_id: string | null
+          sender_id: string
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deleted_for_everyone?: boolean
+          group_id: string
+          id?: string
+          reply_to_id?: string | null
+          sender_id: string
+          type?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted_for_everyone?: boolean
+          group_id?: string
+          id?: string
+          reply_to_id?: string | null
+          sender_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "group_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -284,6 +424,14 @@ export type Database = {
     }
     Functions: {
       is_blocked_between: { Args: { _a: string; _b: string }; Returns: boolean }
+      is_group_admin: {
+        Args: { _group: string; _user: string }
+        Returns: boolean
+      }
+      is_group_member: {
+        Args: { _group: string; _user: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
