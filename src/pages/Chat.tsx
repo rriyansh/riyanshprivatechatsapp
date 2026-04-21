@@ -75,6 +75,15 @@ const Chat = () => {
   const [actionTarget, setActionTarget] = useState<ChatMessage | null>(null);
   const [forwardPayload, setForwardPayload] = useState<ForwardPayload | null>(null);
 
+  const [wallpaperOpen, setWallpaperOpen] = useState(false);
+  const [wallpaperKey, setWallpaperKey] = useState(0);
+  const wallpaperStyle = useMemo(
+    () => (partnerId ? resolveWallpaperStyle(getWallpaper("dm", partnerId)) : {}),
+    [partnerId, wallpaperKey]
+  );
+
+  const { startCall, status: callStatus } = useCall();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimeout = useRef<number | undefined>();
