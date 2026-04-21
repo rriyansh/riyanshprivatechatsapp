@@ -1,9 +1,10 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { MessageSquare, Search, User, Settings } from "lucide-react";
+import { MessageSquare, Users, Search, User, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { to: "/", label: "Chats", icon: MessageSquare, exact: true },
+  { to: "/rooms", label: "Rooms", icon: Users },
   { to: "/search", label: "Search", icon: Search },
   { to: "/me", label: "Profile", icon: User },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -12,7 +13,7 @@ const items = [
 export const BottomNav = () => {
   const { pathname } = useLocation();
   // Hide on chat conversation routes (immersive view)
-  if (pathname.startsWith("/chat/")) return null;
+  if (pathname.startsWith("/chat/") || pathname.startsWith("/room/")) return null;
 
   return (
     <nav
