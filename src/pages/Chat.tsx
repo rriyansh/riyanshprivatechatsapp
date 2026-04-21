@@ -1,8 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Send, Loader2, Share2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  Share2,
+  Phone,
+  MoreVertical,
+  Image as ImageIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProfile } from "@/hooks/useMyProfile";
@@ -26,6 +40,9 @@ import {
   type ForwardPayload,
 } from "@/components/chat/ForwardDialog";
 import { useReactions } from "@/hooks/useReactions";
+import { WallpaperDialog } from "@/components/chat/WallpaperDialog";
+import { getWallpaper, resolveWallpaperStyle } from "@/lib/chatWallpaper";
+import { useCall } from "@/components/call/CallProvider";
 
 type Profile = {
   user_id: string;
