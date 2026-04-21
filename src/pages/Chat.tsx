@@ -666,6 +666,16 @@ const Chat = () => {
         onOpenChange={(v) => !v && setForwardPayload(null)}
         payload={forwardPayload}
       />
+
+      {partnerId && (
+        <WallpaperDialog
+          open={wallpaperOpen}
+          onOpenChange={setWallpaperOpen}
+          type="dm"
+          id={partnerId}
+          onChange={() => setWallpaperKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 };
