@@ -18,7 +18,6 @@ import {
   recordFailedLogin,
   resetLoginAttempts,
 } from "@/lib/loginRateLimit";
-import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup" | "reset";
 
@@ -162,7 +161,7 @@ const Auth = () => {
       >
         <div className="mb-8 text-center">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-border bg-background shadow-sm">
-            <Lock className="h-7 w-7 text-primary-foreground" />
+            <Lock className="h-7 w-7 text-foreground" />
           </div>
           <h1 className="text-4xl font-semibold tracking-normal">PrivateChats</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -220,7 +219,7 @@ const Auth = () => {
                 className="font-medium text-primary hover:underline"
                 onClick={() => setMode("signup")}
               >
-                Sign up
+                Sign up with email
               </button>
             </p>
           </form>
@@ -374,7 +373,7 @@ const SubmitButton = ({
   <Button
     type="submit"
     disabled={loading}
-    className="h-12 w-full rounded-xl bg-gradient-to-r from-primary to-[hsl(var(--primary-glow))] text-base font-semibold shadow-[var(--shadow-elegant)] transition-transform hover:scale-[1.01] active:scale-[0.99]"
+    className="h-12 w-full rounded-xl bg-foreground text-base font-semibold text-background shadow-sm transition-transform hover:scale-[1.01] active:scale-[0.99]"
   >
     {loading ? (
       <Loader2 className="h-5 w-5 animate-spin" />
