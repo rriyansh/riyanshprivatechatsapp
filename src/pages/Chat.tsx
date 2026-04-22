@@ -483,9 +483,7 @@ const Chat = () => {
               {partner?.display_name || partner?.username || "…"}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {partnerTyping
-                ? "typing…"
-                : partner?.last_seen
+              {partner?.last_seen
                 ? `last seen ${format(new Date(partner.last_seen), "p")}`
                 : "@" + (partner?.username || "")}
             </p>
@@ -575,16 +573,6 @@ const Chat = () => {
             </div>
           ))
         )}
-
-        {partnerTyping && (
-          <div className="mb-2 flex justify-start">
-            <div className="bubble-receiver flex items-center gap-1 rounded-3xl rounded-bl-md px-4 py-3">
-              <span className="h-1.5 w-1.5 animate-typing-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
-              <span className="h-1.5 w-1.5 animate-typing-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
-              <span className="h-1.5 w-1.5 animate-typing-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Composer */}
@@ -599,7 +587,7 @@ const Chat = () => {
           <ImageAttachButton onPick={handlePickImage} disabled={sending} />
           <textarea
             value={text}
-            onChange={(e) => handleTyping(e.target.value)}
+            onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
