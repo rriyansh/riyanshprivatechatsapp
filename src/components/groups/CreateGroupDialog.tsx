@@ -93,19 +93,18 @@ export const CreateGroupDialog = ({
       return;
     }
     setCreating(true);
-    const { data: group, error } = await supabase
+    const groupId = crypto.randomUUID();
+    const { error } = await supabase
       .from("groups")
-      .insert({ name: trimmed, created_by: user.id })
-      .select("id")
-      .single();
-    if (error || !group) {
+      .insert({ id: groupId, name: trimmed, created_by: user.id });
+    if (error) {
       setCreating(false);
-      toast.error(error?.message || "Failed to create room");
+      toast.error(error.message || "Failed to create room");
       return;
     }
     // Trigger added creator as admin. Now add the rest as members.
     const rows = Array.from(selected).map((uid) => ({
-      group_id: group.id,
+      group_id: groupId,
       user_id: uid,
       role: "member" as const,
     }));
@@ -118,7 +117,7 @@ export const CreateGroupDialog = ({
     }
     setCreating(false);
     onOpenChange(false);
-    onCreated?.(group.id);
+    onCreated?.(groupId);
   };
 
   return (

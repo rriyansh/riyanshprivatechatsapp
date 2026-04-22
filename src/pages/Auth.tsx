@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import {
   signInSchema,
   signUpSchema,
@@ -22,14 +21,12 @@ import {
 import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup" | "reset";
-type SignInTab = "email" | "username";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const initialMode = (params.get("mode") as Mode) || "signin";
   const [mode, setMode] = useState<Mode>(initialMode);
-  const [signInTab, setSignInTab] = useState<SignInTab>("email");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -71,23 +68,18 @@ const Auth = () => {
       return;
     }
 
-    let resolvedEmail = email;
-
-    if (signInTab === "username") {
-      const u = usernameSchema.safeParse(username);
-      if (!u.success) {
-        toast.error(u.error.errors[0].message);
-        triggerShake();
-        return;
-      }
-      setLoading(true);
-      const found = await resolveUsernameToEmail(u.data);
-      setLoading(false);
-      if (!found) {
-        triggerShake();
-        return;
-      }
-      resolvedEmail = found;
+    const u = usernameSchema.safeParse(username);
+    if (!u.success) {
+      toast.error(u.error.errors[0].message);
+      triggerShake();
+      return;
+    }
+    setLoading(true);
+    const resolvedEmail = await resolveUsernameToEmail(u.data);
+    setLoading(false);
+    if (!resolvedEmail) {
+      triggerShake();
+      return;
     }
 
     const parsed = signInSchema.safeParse({ email: resolvedEmail, password });
@@ -161,29 +153,18 @@ const Auth = () => {
     setMode("signin");
   };
 
-  const handleGoogle = async () => {
-    setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/`,
-    });
-    setLoading(false);
-    if (result.error) {
-      toast.error(result.error.message || "Google sign-in failed");
-    }
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div
-        className={`w-full max-w-md animate-scale-in glass-strong rounded-3xl p-8 ${
+        className={`w-full max-w-[390px] animate-scale-in rounded-[2rem] border border-border bg-card/95 p-8 shadow-[var(--shadow-soft)] ${
           shake ? "animate-shake" : ""
         }`}
       >
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--primary-glow))] shadow-[var(--shadow-elegant)]">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-border bg-background shadow-sm">
             <Lock className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">PrivateChats</h1>
+          <h1 className="text-4xl font-semibold tracking-normal">PrivateChats</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin" && "Sign in to continue"}
             {mode === "signup" && "Create your account"}
@@ -191,68 +172,17 @@ const Auth = () => {
           </p>
         </div>
 
-        {mode !== "reset" && (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 w-full rounded-xl text-base font-medium"
-              onClick={handleGoogle}
-              disabled={loading}
-            >
-              <GoogleIcon className="mr-2 h-5 w-5" />
-              Continue with Google
-            </Button>
-            <div className="my-5 flex items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-          </>
-        )}
-
         {mode === "signin" && (
           <form onSubmit={handleSignIn} className="space-y-4 animate-fade-in">
-            {/* Email / Username tabs */}
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
-              <TabBtn
-                active={signInTab === "email"}
-                onClick={() => setSignInTab("email")}
-                icon={<Mail className="h-4 w-4" />}
-                label="Email"
-              />
-              <TabBtn
-                active={signInTab === "username"}
-                onClick={() => setSignInTab("username")}
-                icon={<AtSign className="h-4 w-4" />}
-                label="Username"
-              />
-            </div>
-
-            {signInTab === "email" ? (
-              <Field
-                id="email"
-                label="Email"
-                icon={<Mail className="h-4 w-4" />}
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(v) => setEmail(v)}
-                placeholder="you@example.com"
-              />
-            ) : (
-              <Field
-                id="username"
-                label="Username"
-                icon={<AtSign className="h-4 w-4" />}
-                autoComplete="username"
-                value={username}
-                onChange={(v) =>
-                  setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""))
-                }
-                placeholder="janedoe"
-              />
-            )}
+            <Field
+              id="username"
+              label="Username"
+              icon={<AtSign className="h-4 w-4" />}
+              autoComplete="username"
+              value={username}
+              onChange={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+              placeholder="username"
+            />
             <Field
               id="password"
               label="Password"
@@ -389,34 +319,6 @@ const Auth = () => {
   );
 };
 
-// ---------------- helpers ----------------
-
-const TabBtn = ({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={cn(
-      "flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all",
-      active
-        ? "bg-background text-foreground shadow-sm"
-        : "text-muted-foreground hover:text-foreground"
-    )}
-  >
-    {icon}
-    {label}
-  </button>
-);
-
 const Field = ({
   id,
   label,
@@ -482,15 +384,6 @@ const SubmitButton = ({
       </>
     )}
   </Button>
-);
-
-const GoogleIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-    <path fill="#4285F4" d="M21.6 12.227c0-.682-.061-1.337-.175-1.966H12v3.72h5.385a4.604 4.604 0 0 1-1.997 3.018v2.51h3.232c1.892-1.742 2.98-4.31 2.98-7.282z"/>
-    <path fill="#34A853" d="M12 22c2.7 0 4.964-.895 6.62-2.422l-3.232-2.51c-.896.6-2.04.957-3.388.957-2.605 0-4.81-1.76-5.598-4.124H3.064v2.59A9.997 9.997 0 0 0 12 22z"/>
-    <path fill="#FBBC05" d="M6.402 13.901a5.99 5.99 0 0 1 0-3.802V7.51H3.064a10 10 0 0 0 0 8.98l3.338-2.59z"/>
-    <path fill="#EA4335" d="M12 5.977c1.47 0 2.787.505 3.825 1.498l2.868-2.868C16.96 2.99 14.696 2 12 2 8.087 2 4.71 4.246 3.064 7.51l3.338 2.59C7.19 7.737 9.395 5.977 12 5.977z"/>
-  </svg>
 );
 
 export default Auth;
