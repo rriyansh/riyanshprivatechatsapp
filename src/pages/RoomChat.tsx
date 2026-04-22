@@ -373,12 +373,12 @@ const RoomChat = () => {
         </form>
       </div>
 
-      {groupId && (
+      {safeGroupId && (
         <WallpaperDialog
           open={wallpaperOpen}
           onOpenChange={setWallpaperOpen}
           type="group"
-          id={groupId}
+          id={safeGroupId}
           onChange={() => setWallpaperKey((k) => k + 1)}
         />
       )}
