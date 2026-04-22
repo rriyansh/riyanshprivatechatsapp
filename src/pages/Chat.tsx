@@ -54,9 +54,11 @@ type Profile = {
 
 const MAX_IMAGE_MB = 10;
 const MAX_VOICE_MB = 5;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const Chat = () => {
   const { partnerId } = useParams<{ partnerId: string }>();
+  const safePartnerId = partnerId && UUID_RE.test(partnerId) ? partnerId : null;
   const { user } = useAuth();
   const { profile: myProfile } = useMyProfile();
   const navigate = useNavigate();
@@ -78,8 +80,8 @@ const Chat = () => {
   const [wallpaperOpen, setWallpaperOpen] = useState(false);
   const [wallpaperKey, setWallpaperKey] = useState(0);
   const wallpaperStyle = useMemo(
-    () => (partnerId ? resolveWallpaperStyle(getWallpaper("dm", partnerId)) : {}),
-    [partnerId, wallpaperKey]
+    () => (safePartnerId ? resolveWallpaperStyle(getWallpaper("dm", safePartnerId)) : {}),
+    [safePartnerId, wallpaperKey]
   );
 
   const { startCall, status: callStatus } = useCall();
@@ -89,10 +91,10 @@ const Chat = () => {
   const typingTimeout = useRef<number | undefined>();
 
   const channelName = useMemo(() => {
-    if (!user || !partnerId) return "";
-    const [a, b] = [user.id, partnerId].sort();
+    if (!user || !safePartnerId) return "";
+    const [a, b] = [user.id, safePartnerId].sort();
     return `dm:${a}:${b}`;
-  }, [user?.id, partnerId]);
+  }, [user?.id, safePartnerId]);
 
   const partnerName =
     partner?.display_name || partner?.username || "User";
@@ -101,6 +103,11 @@ const Chat = () => {
   // Load partner profile + messages
   useEffect(() => {
     if (!user || !partnerId) return;
+    if (!safePartnerId) {
+      toast.error("Invalid chat link");
+      navigate("/", { replace: true });
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -108,13 +115,13 @@ const Chat = () => {
         supabase
           .from("profiles")
           .select("user_id, username, display_name, avatar_url, last_seen")
-          .eq("user_id", partnerId)
+          .eq("user_id", safePartnerId)
           .maybeSingle(),
         supabase
           .from("messages")
           .select("*")
           .or(
-            `and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`
+            `and(sender_id.eq.${user.id},receiver_id.eq.${safePartnerId}),and(sender_id.eq.${safePartnerId},receiver_id.eq.${user.id})`
           )
           .order("created_at", { ascending: true })
           .limit(500),
@@ -146,7 +153,7 @@ const Chat = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, partnerId]);
+  }, [user?.id, partnerId, safePartnerId, navigate]);
 
   // Realtime
   useEffect(() => {
