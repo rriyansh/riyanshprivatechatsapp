@@ -10,12 +10,42 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const WINDOW_MS = 60_000;
+const MAX_REQUESTS_PER_IP = 8;
+const buckets = new Map<string, number[]>();
+
+function getClientIp(req: Request) {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+function isRateLimited(ip: string) {
+  const now = Date.now();
+  const recent = (buckets.get(ip) || []).filter((t) => now - t < WINDOW_MS);
+  if (recent.length >= MAX_REQUESTS_PER_IP) {
+    buckets.set(ip, recent);
+    return true;
+  }
+  recent.push(now);
+  buckets.set(ip, recent);
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const ip = getClientIp(req);
+    if (isRateLimited(ip)) {
+      return json({ error: "Too many attempts. Please wait and try again." }, 429);
+    }
+
     const body = await req.json().catch(() => ({}));
     const raw = typeof body?.username === "string" ? body.username : "";
     const username = raw.trim().toLowerCase();

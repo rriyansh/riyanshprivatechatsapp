@@ -54,9 +54,11 @@ type Profile = {
 
 const MAX_IMAGE_MB = 10;
 const MAX_VOICE_MB = 5;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const Chat = () => {
   const { partnerId } = useParams<{ partnerId: string }>();
+  const safePartnerId = partnerId && UUID_RE.test(partnerId) ? partnerId : null;
   const { user } = useAuth();
   const { profile: myProfile } = useMyProfile();
   const navigate = useNavigate();
@@ -66,7 +68,6 @@ const Chat = () => {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [partnerTyping, setPartnerTyping] = useState(false);
 
   const [pendingImage, setPendingImage] = useState<File | null>(null);
   const [imageSending, setImageSending] = useState(false);
@@ -78,21 +79,20 @@ const Chat = () => {
   const [wallpaperOpen, setWallpaperOpen] = useState(false);
   const [wallpaperKey, setWallpaperKey] = useState(0);
   const wallpaperStyle = useMemo(
-    () => (partnerId ? resolveWallpaperStyle(getWallpaper("dm", partnerId)) : {}),
-    [partnerId, wallpaperKey]
+    () => (safePartnerId ? resolveWallpaperStyle(getWallpaper("dm", safePartnerId)) : {}),
+    [safePartnerId, wallpaperKey]
   );
 
   const { startCall, status: callStatus } = useCall();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const typingTimeout = useRef<number | undefined>();
 
   const channelName = useMemo(() => {
-    if (!user || !partnerId) return "";
-    const [a, b] = [user.id, partnerId].sort();
+    if (!user || !safePartnerId) return "";
+    const [a, b] = [user.id, safePartnerId].sort();
     return `dm:${a}:${b}`;
-  }, [user?.id, partnerId]);
+  }, [user?.id, safePartnerId]);
 
   const partnerName =
     partner?.display_name || partner?.username || "User";
@@ -101,6 +101,11 @@ const Chat = () => {
   // Load partner profile + messages
   useEffect(() => {
     if (!user || !partnerId) return;
+    if (!safePartnerId) {
+      toast.error("Invalid chat link");
+      navigate("/", { replace: true });
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -108,13 +113,13 @@ const Chat = () => {
         supabase
           .from("profiles")
           .select("user_id, username, display_name, avatar_url, last_seen")
-          .eq("user_id", partnerId)
+          .eq("user_id", safePartnerId)
           .maybeSingle(),
         supabase
           .from("messages")
           .select("*")
           .or(
-            `and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`
+            `and(sender_id.eq.${user.id},receiver_id.eq.${safePartnerId}),and(sender_id.eq.${safePartnerId},receiver_id.eq.${user.id})`
           )
           .order("created_at", { ascending: true })
           .limit(500),
@@ -146,15 +151,13 @@ const Chat = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, partnerId]);
+  }, [user?.id, partnerId, safePartnerId, navigate]);
 
   // Realtime
   useEffect(() => {
-    if (!user || !partnerId || !channelName) return;
+    if (!user || !safePartnerId || !channelName) return;
 
-    const channel = supabase.channel(channelName, {
-      config: { broadcast: { self: false }, presence: { key: user.id } },
-    });
+    const channel = supabase.channel(channelName);
 
     channel
       .on(
@@ -163,8 +166,8 @@ const Chat = () => {
         (payload) => {
           const m = payload.new as ChatMessage;
           const involvesPair =
-            (m.sender_id === user.id && m.receiver_id === partnerId) ||
-            (m.sender_id === partnerId && m.receiver_id === user.id);
+            (m.sender_id === user.id && m.receiver_id === safePartnerId) ||
+            (m.sender_id === safePartnerId && m.receiver_id === user.id);
           if (!involvesPair) return;
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
           if (m.receiver_id === user.id) {
@@ -188,37 +191,20 @@ const Chat = () => {
           setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, ...m } : x)));
         }
       )
-      .on("broadcast", { event: "typing" }, (payload) => {
-        if (payload.payload?.userId === partnerId) {
-          setPartnerTyping(true);
-          window.clearTimeout(typingTimeout.current);
-          typingTimeout.current = window.setTimeout(() => setPartnerTyping(false), 2500);
-        }
-      })
       .subscribe();
 
     channelRef.current = channel;
     return () => {
-      window.clearTimeout(typingTimeout.current);
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [channelName, user?.id, partnerId]);
+  }, [channelName, user?.id, safePartnerId]);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages.length, partnerTyping]);
-
-  const handleTyping = (value: string) => {
-    setText(value);
-    channelRef.current?.send({
-      type: "broadcast",
-      event: "typing",
-      payload: { userId: user?.id },
-    });
-  };
+  }, [messages.length]);
 
   const buildReplyTarget = (m: ChatMessage): ReplyTarget => ({
     id: m.id,
@@ -230,7 +216,7 @@ const Chat = () => {
   const handleSendText = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const content = text.trim();
-    if (!content || !user || !partnerId || sending) return;
+    if (!content || !user || !safePartnerId || sending) return;
     if (content.length > 4000) {
       toast.error("Message too long (max 4000 characters)");
       return;
@@ -243,7 +229,7 @@ const Chat = () => {
     const optimistic: ChatMessage = {
       id: `temp-${crypto.randomUUID()}`,
       sender_id: user.id,
-      receiver_id: partnerId,
+      receiver_id: safePartnerId,
       content,
       type: "text",
       seen: false,
@@ -260,7 +246,7 @@ const Chat = () => {
       .from("messages")
       .insert({
         sender_id: user.id,
-        receiver_id: partnerId,
+        receiver_id: safePartnerId,
         content,
         type: "text",
         reply_to_id: replyId,
@@ -293,7 +279,7 @@ const Chat = () => {
   };
 
   const sendImage = async () => {
-    if (!pendingImage || !user || !partnerId) return;
+    if (!pendingImage || !user || !safePartnerId) return;
     setImageSending(true);
     try {
       const { blob, ext, mime } = await compressImage(pendingImage, {
@@ -311,7 +297,7 @@ const Chat = () => {
 
       const { error: insErr } = await supabase.from("messages").insert({
         sender_id: user.id,
-        receiver_id: partnerId,
+        receiver_id: safePartnerId,
         content: "",
         type: "image",
         media_path: path,
@@ -331,7 +317,7 @@ const Chat = () => {
   };
 
   const sendVoice = async (blob: Blob, durationMs: number, mime: string) => {
-    if (!user || !partnerId) return;
+    if (!user || !safePartnerId) return;
     if (blob.size > MAX_VOICE_MB * 1024 * 1024) {
       toast.error(`Voice note is too large (max ${MAX_VOICE_MB}MB).`);
       return;
@@ -348,7 +334,7 @@ const Chat = () => {
 
     const { error: insErr } = await supabase.from("messages").insert({
       sender_id: user.id,
-      receiver_id: partnerId,
+      receiver_id: safePartnerId,
       content: "",
       type: "voice",
       media_path: path,
@@ -418,7 +404,7 @@ const Chat = () => {
       if (m.sender_id !== user.id) return;
       const { error } = await supabase
         .from("messages")
-        .update({ deleted_for_everyone: true, content: "", media_path: null })
+        .update({ deleted_for_everyone: true, content: "" })
         .eq("id", m.id);
       if (error) {
         toast.error(error.message);
@@ -447,7 +433,7 @@ const Chat = () => {
   const visibleIds = useMemo(() => visibleMessages.map((m) => m.id), [visibleMessages]);
   const { byMessage: reactionsByMessage, toggle: toggleReaction } = useReactions(
     visibleIds,
-    partnerId
+    safePartnerId ?? undefined
   );
   const myReactedForActionTarget = useMemo(() => {
     if (!actionTarget || !user) return new Set<string>();
@@ -497,9 +483,7 @@ const Chat = () => {
               {partner?.display_name || partner?.username || "…"}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {partnerTyping
-                ? "typing…"
-                : partner?.last_seen
+              {partner?.last_seen
                 ? `last seen ${format(new Date(partner.last_seen), "p")}`
                 : "@" + (partner?.username || "")}
             </p>
@@ -509,8 +493,8 @@ const Chat = () => {
           size="icon"
           variant="ghost"
           className="rounded-full"
-          onClick={() => partnerId && startCall(partnerId)}
-          disabled={callStatus !== "idle" || !partnerId}
+          onClick={() => safePartnerId && startCall(safePartnerId)}
+          disabled={callStatus !== "idle" || !safePartnerId}
           aria-label="Voice call"
           title="Voice call"
         >
@@ -589,16 +573,6 @@ const Chat = () => {
             </div>
           ))
         )}
-
-        {partnerTyping && (
-          <div className="mb-2 flex justify-start">
-            <div className="bubble-receiver flex items-center gap-1 rounded-3xl rounded-bl-md px-4 py-3">
-              <span className="h-1.5 w-1.5 animate-typing-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
-              <span className="h-1.5 w-1.5 animate-typing-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
-              <span className="h-1.5 w-1.5 animate-typing-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Composer */}
@@ -613,7 +587,7 @@ const Chat = () => {
           <ImageAttachButton onPick={handlePickImage} disabled={sending} />
           <textarea
             value={text}
-            onChange={(e) => handleTyping(e.target.value)}
+            onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -667,12 +641,12 @@ const Chat = () => {
         payload={forwardPayload}
       />
 
-      {partnerId && (
+      {safePartnerId && (
         <WallpaperDialog
           open={wallpaperOpen}
           onOpenChange={setWallpaperOpen}
           type="dm"
-          id={partnerId}
+          id={safePartnerId}
           onChange={() => setWallpaperKey((k) => k + 1)}
         />
       )}

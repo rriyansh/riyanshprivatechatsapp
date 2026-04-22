@@ -15,6 +15,9 @@ type SearchProfile = {
   followers_count: number;
 };
 
+const sanitizePostgrestSearch = (value: string) =>
+  value.replace(/[,.()%]/g, "").slice(0, 60);
+
 const SearchUsers = () => {
   const { user } = useAuth();
   const [q, setQ] = useState("");
@@ -32,13 +35,14 @@ const SearchUsers = () => {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      const safeSearch = sanitizePostgrestSearch(debounced);
       // Empty query: show suggested (most-followed) people
       const base = supabase
         .from("profiles_public")
         .select("user_id, username, display_name, avatar_url, bio, followers_count")
         .neq("user_id", user.id);
-      const query = debounced
-        ? base.or(`username.ilike.%${debounced}%,display_name.ilike.%${debounced}%`)
+      const query = safeSearch
+        ? base.or(`username.ilike.%${safeSearch}%,display_name.ilike.%${safeSearch}%`)
         : base.order("followers_count", { ascending: false });
 
       const { data, error } = await query.limit(30);

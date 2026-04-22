@@ -55,8 +55,11 @@ type GroupInfo = {
   created_by: string;
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const RoomChat = () => {
   const { groupId } = useParams<{ groupId: string }>();
+  const safeGroupId = groupId && UUID_RE.test(groupId) ? groupId : null;
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -72,13 +75,18 @@ const RoomChat = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const wallpaper = useMemo(
-    () => (groupId ? resolveWallpaperStyle(getWallpaper("group", groupId)) : {}),
-    [groupId, wallpaperKey]
+    () => (safeGroupId ? resolveWallpaperStyle(getWallpaper("group", safeGroupId)) : {}),
+    [safeGroupId, wallpaperKey]
   );
 
   // Load group, members, messages
   useEffect(() => {
     if (!user || !groupId) return;
+    if (!safeGroupId) {
+      toast.error("Invalid room link");
+      navigate("/rooms", { replace: true });
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -87,13 +95,13 @@ const RoomChat = () => {
           supabase
             .from("groups")
             .select("id, name, avatar_url, created_by")
-            .eq("id", groupId)
+            .eq("id", safeGroupId)
             .maybeSingle(),
-          supabase.from("group_members").select("user_id").eq("group_id", groupId),
+          supabase.from("group_members").select("user_id").eq("group_id", safeGroupId),
           supabase
             .from("group_messages")
             .select("*")
-            .eq("group_id", groupId)
+            .eq("group_id", safeGroupId)
             .order("created_at", { ascending: true })
             .limit(500),
         ]);
@@ -127,20 +135,20 @@ const RoomChat = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, groupId, navigate]);
+  }, [user?.id, groupId, safeGroupId, navigate]);
 
   // Realtime
   useEffect(() => {
-    if (!user || !groupId) return;
+    if (!user || !safeGroupId) return;
     const channel = supabase
-      .channel(`room:${groupId}`)
+      .channel(`room:${safeGroupId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "group_messages",
-          filter: `group_id=eq.${groupId}`,
+          filter: `group_id=eq.${safeGroupId}`,
         },
         (payload) => {
           const m = payload.new as GroupMessage;
@@ -153,7 +161,7 @@ const RoomChat = () => {
           event: "UPDATE",
           schema: "public",
           table: "group_messages",
-          filter: `group_id=eq.${groupId}`,
+          filter: `group_id=eq.${safeGroupId}`,
         },
         (payload) => {
           const m = payload.new as GroupMessage;
@@ -164,7 +172,7 @@ const RoomChat = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, groupId]);
+  }, [user?.id, safeGroupId]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -175,7 +183,7 @@ const RoomChat = () => {
   const send = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const content = text.trim();
-    if (!content || !user || !groupId || sending) return;
+    if (!content || !user || !safeGroupId || sending) return;
     if (content.length > 4000) {
       toast.error("Message too long");
       return;
@@ -183,7 +191,7 @@ const RoomChat = () => {
     setSending(true);
     setText("");
     const { error } = await supabase.from("group_messages").insert({
-      group_id: groupId,
+      group_id: safeGroupId,
       sender_id: user.id,
       content,
       type: "text",
@@ -196,13 +204,13 @@ const RoomChat = () => {
   };
 
   const leaveGroup = async () => {
-    if (!user || !groupId) return;
+    if (!user || !safeGroupId) return;
     const ok = window.confirm("Leave this room? You'll need to be re-invited to come back.");
     if (!ok) return;
     const { error } = await supabase
       .from("group_members")
       .delete()
-      .eq("group_id", groupId)
+      .eq("group_id", safeGroupId)
       .eq("user_id", user.id);
     if (error) {
       toast.error(error.message);
@@ -365,12 +373,12 @@ const RoomChat = () => {
         </form>
       </div>
 
-      {groupId && (
+      {safeGroupId && (
         <WallpaperDialog
           open={wallpaperOpen}
           onOpenChange={setWallpaperOpen}
           type="group"
-          id={groupId}
+          id={safeGroupId}
           onChange={() => setWallpaperKey((k) => k + 1)}
         />
       )}
