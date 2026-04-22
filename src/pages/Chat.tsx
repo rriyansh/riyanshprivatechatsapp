@@ -157,7 +157,7 @@ const Chat = () => {
 
   // Realtime
   useEffect(() => {
-    if (!user || !partnerId || !channelName) return;
+    if (!user || !safePartnerId || !channelName) return;
 
     const channel = supabase.channel(channelName, {
       config: { broadcast: { self: false }, presence: { key: user.id } },
@@ -170,8 +170,8 @@ const Chat = () => {
         (payload) => {
           const m = payload.new as ChatMessage;
           const involvesPair =
-            (m.sender_id === user.id && m.receiver_id === partnerId) ||
-            (m.sender_id === partnerId && m.receiver_id === user.id);
+            (m.sender_id === user.id && m.receiver_id === safePartnerId) ||
+            (m.sender_id === safePartnerId && m.receiver_id === user.id);
           if (!involvesPair) return;
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
           if (m.receiver_id === user.id) {
@@ -196,7 +196,7 @@ const Chat = () => {
         }
       )
       .on("broadcast", { event: "typing" }, (payload) => {
-        if (payload.payload?.userId === partnerId) {
+        if (payload.payload?.userId === safePartnerId) {
           setPartnerTyping(true);
           window.clearTimeout(typingTimeout.current);
           typingTimeout.current = window.setTimeout(() => setPartnerTyping(false), 2500);
@@ -210,7 +210,7 @@ const Chat = () => {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [channelName, user?.id, partnerId]);
+  }, [channelName, user?.id, safePartnerId]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -237,7 +237,7 @@ const Chat = () => {
   const handleSendText = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const content = text.trim();
-    if (!content || !user || !partnerId || sending) return;
+    if (!content || !user || !safePartnerId || sending) return;
     if (content.length > 4000) {
       toast.error("Message too long (max 4000 characters)");
       return;
@@ -250,7 +250,7 @@ const Chat = () => {
     const optimistic: ChatMessage = {
       id: `temp-${crypto.randomUUID()}`,
       sender_id: user.id,
-      receiver_id: partnerId,
+      receiver_id: safePartnerId,
       content,
       type: "text",
       seen: false,
@@ -267,7 +267,7 @@ const Chat = () => {
       .from("messages")
       .insert({
         sender_id: user.id,
-        receiver_id: partnerId,
+        receiver_id: safePartnerId,
         content,
         type: "text",
         reply_to_id: replyId,
@@ -300,7 +300,7 @@ const Chat = () => {
   };
 
   const sendImage = async () => {
-    if (!pendingImage || !user || !partnerId) return;
+    if (!pendingImage || !user || !safePartnerId) return;
     setImageSending(true);
     try {
       const { blob, ext, mime } = await compressImage(pendingImage, {
@@ -318,7 +318,7 @@ const Chat = () => {
 
       const { error: insErr } = await supabase.from("messages").insert({
         sender_id: user.id,
-        receiver_id: partnerId,
+        receiver_id: safePartnerId,
         content: "",
         type: "image",
         media_path: path,
@@ -338,7 +338,7 @@ const Chat = () => {
   };
 
   const sendVoice = async (blob: Blob, durationMs: number, mime: string) => {
-    if (!user || !partnerId) return;
+    if (!user || !safePartnerId) return;
     if (blob.size > MAX_VOICE_MB * 1024 * 1024) {
       toast.error(`Voice note is too large (max ${MAX_VOICE_MB}MB).`);
       return;
@@ -355,7 +355,7 @@ const Chat = () => {
 
     const { error: insErr } = await supabase.from("messages").insert({
       sender_id: user.id,
-      receiver_id: partnerId,
+      receiver_id: safePartnerId,
       content: "",
       type: "voice",
       media_path: path,
@@ -425,7 +425,7 @@ const Chat = () => {
       if (m.sender_id !== user.id) return;
       const { error } = await supabase
         .from("messages")
-        .update({ deleted_for_everyone: true, content: "", media_path: null })
+        .update({ deleted_for_everyone: true, content: "" })
         .eq("id", m.id);
       if (error) {
         toast.error(error.message);
