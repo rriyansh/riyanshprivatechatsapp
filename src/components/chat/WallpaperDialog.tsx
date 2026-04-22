@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Image as ImageIcon, RotateCcw, Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Image as ImageIcon, RotateCcw, Check, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,10 @@ export const WallpaperDialog = ({
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (open) setCurrent(getWallpaper(type, id));
+  }, [open, type, id]);
+
   const choose = (value: string | null) => {
     if (!value) {
       clearWallpaper(type, id);
@@ -46,6 +50,11 @@ export const WallpaperDialog = ({
     }
     setCurrent(value);
     onChange(value);
+  };
+
+  const reset = () => {
+    choose(null);
+    toast.success("Wallpaper reset");
   };
 
   const onPick = async (file: File) => {
@@ -80,6 +89,17 @@ export const WallpaperDialog = ({
             Stored on this device only. Each chat can have its own.
           </DialogDescription>
         </DialogHeader>
+
+        <div
+          className="min-h-28 overflow-hidden rounded-2xl border border-border bg-muted"
+          style={resolveWallpaperStyle(current)}
+        >
+          <div className="flex min-h-28 items-center justify-center bg-background/35 p-4 text-center backdrop-blur-[1px]">
+            <span className="rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-foreground shadow-sm">
+              Live preview
+            </span>
+          </div>
+        </div>
 
         <div className="grid grid-cols-3 gap-3">
           {WALLPAPER_PRESETS.map((p) => {
@@ -134,18 +154,23 @@ export const WallpaperDialog = ({
         <div className="flex justify-between gap-2 pt-1">
           <Button
             variant="ghost"
-            onClick={() => {
-              choose(null);
-              toast.success("Wallpaper reset");
-            }}
+            onClick={reset}
             className="rounded-2xl"
           >
             <RotateCcw className="mr-1.5 h-4 w-4" />
             Reset
           </Button>
-          <Button onClick={() => onOpenChange(false)} className="rounded-2xl">
-            Done
-          </Button>
+          <div className="flex gap-2">
+            {current && (
+              <Button variant="outline" onClick={reset} className="rounded-2xl">
+                <Trash2 className="mr-1.5 h-4 w-4" />
+                Remove
+              </Button>
+            )}
+            <Button onClick={() => onOpenChange(false)} className="rounded-2xl">
+              Done
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
