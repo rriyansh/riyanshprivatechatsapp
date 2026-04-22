@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import {
   signInSchema,
   signUpSchema,
@@ -22,14 +21,12 @@ import {
 import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup" | "reset";
-type SignInTab = "email" | "username";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const initialMode = (params.get("mode") as Mode) || "signin";
   const [mode, setMode] = useState<Mode>(initialMode);
-  const [signInTab, setSignInTab] = useState<SignInTab>("username");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -71,23 +68,18 @@ const Auth = () => {
       return;
     }
 
-    let resolvedEmail = email;
-
-    if (signInTab === "username") {
-      const u = usernameSchema.safeParse(username);
-      if (!u.success) {
-        toast.error(u.error.errors[0].message);
-        triggerShake();
-        return;
-      }
-      setLoading(true);
-      const found = await resolveUsernameToEmail(u.data);
-      setLoading(false);
-      if (!found) {
-        triggerShake();
-        return;
-      }
-      resolvedEmail = found;
+    const u = usernameSchema.safeParse(username);
+    if (!u.success) {
+      toast.error(u.error.errors[0].message);
+      triggerShake();
+      return;
+    }
+    setLoading(true);
+    const resolvedEmail = await resolveUsernameToEmail(u.data);
+    setLoading(false);
+    if (!resolvedEmail) {
+      triggerShake();
+      return;
     }
 
     const parsed = signInSchema.safeParse({ email: resolvedEmail, password });
@@ -159,17 +151,6 @@ const Auth = () => {
     }
     toast.success("Reset link sent. Check your inbox.");
     setMode("signin");
-  };
-
-  const handleGoogle = async () => {
-    setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/`,
-    });
-    setLoading(false);
-    if (result.error) {
-      toast.error(result.error.message || "Google sign-in failed");
-    }
   };
 
   return (
