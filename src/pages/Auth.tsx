@@ -29,7 +29,7 @@ const Auth = () => {
   const [params, setParams] = useSearchParams();
   const initialMode = (params.get("mode") as Mode) || "signin";
   const [mode, setMode] = useState<Mode>(initialMode);
-  const [signInTab, setSignInTab] = useState<SignInTab>("email");
+  const [signInTab, setSignInTab] = useState<SignInTab>("username");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -175,41 +175,21 @@ const Auth = () => {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div
-        className={`w-full max-w-md animate-scale-in glass-strong rounded-3xl p-8 ${
+        className={`w-full max-w-[390px] animate-scale-in rounded-[2rem] border border-border bg-card/95 p-8 shadow-[var(--shadow-soft)] ${
           shake ? "animate-shake" : ""
         }`}
       >
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--primary-glow))] shadow-[var(--shadow-elegant)]">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-border bg-background shadow-sm">
             <Lock className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">PrivateChats</h1>
+          <h1 className="text-4xl font-semibold tracking-normal">PrivateChats</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin" && "Sign in to continue"}
             {mode === "signup" && "Create your account"}
             {mode === "reset" && "Reset your password"}
           </p>
         </div>
-
-        {mode !== "reset" && (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 w-full rounded-xl text-base font-medium"
-              onClick={handleGoogle}
-              disabled={loading}
-            >
-              <GoogleIcon className="mr-2 h-5 w-5" />
-              Continue with Google
-            </Button>
-            <div className="my-5 flex items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-          </>
-        )}
 
         {mode === "signin" && (
           <form onSubmit={handleSignIn} className="space-y-4 animate-fade-in">
