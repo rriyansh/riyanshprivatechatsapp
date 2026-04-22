@@ -55,8 +55,11 @@ type GroupInfo = {
   created_by: string;
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const RoomChat = () => {
   const { groupId } = useParams<{ groupId: string }>();
+  const safeGroupId = groupId && UUID_RE.test(groupId) ? groupId : null;
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -72,13 +75,18 @@ const RoomChat = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const wallpaper = useMemo(
-    () => (groupId ? resolveWallpaperStyle(getWallpaper("group", groupId)) : {}),
-    [groupId, wallpaperKey]
+    () => (safeGroupId ? resolveWallpaperStyle(getWallpaper("group", safeGroupId)) : {}),
+    [safeGroupId, wallpaperKey]
   );
 
   // Load group, members, messages
   useEffect(() => {
     if (!user || !groupId) return;
+    if (!safeGroupId) {
+      toast.error("Invalid room link");
+      navigate("/rooms", { replace: true });
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -87,13 +95,13 @@ const RoomChat = () => {
           supabase
             .from("groups")
             .select("id, name, avatar_url, created_by")
-            .eq("id", groupId)
+            .eq("id", safeGroupId)
             .maybeSingle(),
-          supabase.from("group_members").select("user_id").eq("group_id", groupId),
+          supabase.from("group_members").select("user_id").eq("group_id", safeGroupId),
           supabase
             .from("group_messages")
             .select("*")
-            .eq("group_id", groupId)
+            .eq("group_id", safeGroupId)
             .order("created_at", { ascending: true })
             .limit(500),
         ]);
@@ -127,7 +135,7 @@ const RoomChat = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, groupId, navigate]);
+  }, [user?.id, groupId, safeGroupId, navigate]);
 
   // Realtime
   useEffect(() => {
