@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Lock, Mail, User as UserIcon, Eye, EyeOff, ArrowRight, Loader2, AtSign } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, ArrowRight, Loader2, AtSign, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import {
   signInSchema,
   signUpSchema,
   resetSchema,
+  emailSchema,
   friendlyAuthError,
 } from "@/lib/authSchemas";
 import { usernameSchema } from "@/lib/profileSchemas";
@@ -29,7 +30,6 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
@@ -67,27 +67,42 @@ const Auth = () => {
       return;
     }
 
-    const u = usernameSchema.safeParse(username);
-    if (!u.success) {
-      toast.error(u.error.errors[0].message);
-      triggerShake();
-      return;
-    }
+    const loginId = username.trim().toLowerCase();
     setLoading(true);
-    const resolvedEmail = await resolveUsernameToEmail(u.data);
-    setLoading(false);
-    if (!resolvedEmail) {
-      triggerShake();
-      return;
+    let resolvedEmail = loginId;
+    if (loginId.includes("@")) {
+      const parsedEmail = emailSchema.safeParse(loginId);
+      if (!parsedEmail.success) {
+        setLoading(false);
+        toast.error(parsedEmail.error.errors[0].message);
+        triggerShake();
+        return;
+      }
+      resolvedEmail = parsedEmail.data;
+    } else {
+      const u = usernameSchema.safeParse(loginId);
+      if (!u.success) {
+        setLoading(false);
+        toast.error(u.error.errors[0].message);
+        triggerShake();
+        return;
+      }
+      const foundEmail = await resolveUsernameToEmail(u.data);
+      if (!foundEmail) {
+        setLoading(false);
+        triggerShake();
+        return;
+      }
+      resolvedEmail = foundEmail;
     }
 
     const parsed = signInSchema.safeParse({ email: resolvedEmail, password });
     if (!parsed.success) {
+      setLoading(false);
       toast.error(parsed.error.errors[0].message);
       triggerShake();
       return;
     }
-    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: parsed.data.email,
       password: parsed.data.password,
@@ -106,7 +121,7 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = signUpSchema.safeParse({ displayName, email, password });
+    const parsed = signUpSchema.safeParse({ email, password });
     if (!parsed.success) {
       toast.error(parsed.error.errors[0].message);
       triggerShake();
@@ -118,7 +133,6 @@ const Auth = () => {
       password: parsed.data.password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
-        data: { display_name: parsed.data.displayName },
       },
     });
     setLoading(false);
@@ -160,13 +174,13 @@ const Auth = () => {
         }`}
       >
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-border bg-background shadow-sm">
-            <Lock className="h-7 w-7 text-foreground" />
+          <div className="mx-auto mb-4 flex h-20 w-20 animate-scale-in items-center justify-center rounded-[1.75rem] border border-border bg-background shadow-[var(--shadow-elegant)]">
+            <MessageCircle className="h-9 w-9 text-foreground" />
           </div>
-          <h1 className="text-4xl font-semibold tracking-normal">PrivateChats</h1>
+          <h1 className="text-4xl font-semibold tracking-normal">VeltoChat</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin" && "Sign in to continue"}
-            {mode === "signup" && "Create your account"}
+            {mode === "signin" && "Login with username or email"}
+            {mode === "signup" && "Sign up with email and password"}
             {mode === "reset" && "Reset your password"}
           </p>
         </div>
@@ -175,12 +189,12 @@ const Auth = () => {
           <form onSubmit={handleSignIn} className="space-y-4 animate-fade-in">
             <Field
               id="username"
-              label="Username"
+              label="Username or email"
               icon={<AtSign className="h-4 w-4" />}
               autoComplete="username"
               value={username}
-              onChange={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-              placeholder="username"
+              onChange={(v) => setUsername(v.toLowerCase())}
+              placeholder="username or you@example.com"
             />
             <Field
               id="password"
@@ -227,15 +241,6 @@ const Auth = () => {
 
         {mode === "signup" && (
           <form onSubmit={handleSignUp} className="space-y-4 animate-fade-in">
-            <Field
-              id="name"
-              label="Name"
-              icon={<UserIcon className="h-4 w-4" />}
-              value={displayName}
-              onChange={setDisplayName}
-              placeholder="Jane Doe"
-              autoComplete="name"
-            />
             <Field
               id="email"
               label="Email"

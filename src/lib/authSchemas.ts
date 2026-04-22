@@ -17,11 +17,6 @@ export const signInSchema = z.object({
 });
 
 export const signUpSchema = z.object({
-  displayName: z
-    .string()
-    .trim()
-    .min(2, { message: "Name must be at least 2 characters" })
-    .max(50),
   email: emailSchema,
   password: passwordSchema,
 });
