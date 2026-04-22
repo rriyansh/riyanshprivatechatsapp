@@ -174,46 +174,15 @@ const Auth = () => {
 
         {mode === "signin" && (
           <form onSubmit={handleSignIn} className="space-y-4 animate-fade-in">
-            {/* Email / Username tabs */}
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
-              <TabBtn
-                active={signInTab === "email"}
-                onClick={() => setSignInTab("email")}
-                icon={<Mail className="h-4 w-4" />}
-                label="Email"
-              />
-              <TabBtn
-                active={signInTab === "username"}
-                onClick={() => setSignInTab("username")}
-                icon={<AtSign className="h-4 w-4" />}
-                label="Username"
-              />
-            </div>
-
-            {signInTab === "email" ? (
-              <Field
-                id="email"
-                label="Email"
-                icon={<Mail className="h-4 w-4" />}
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(v) => setEmail(v)}
-                placeholder="you@example.com"
-              />
-            ) : (
-              <Field
-                id="username"
-                label="Username"
-                icon={<AtSign className="h-4 w-4" />}
-                autoComplete="username"
-                value={username}
-                onChange={(v) =>
-                  setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""))
-                }
-                placeholder="janedoe"
-              />
-            )}
+            <Field
+              id="username"
+              label="Username"
+              icon={<AtSign className="h-4 w-4" />}
+              autoComplete="username"
+              value={username}
+              onChange={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+              placeholder="username"
+            />
             <Field
               id="password"
               label="Password"
@@ -350,34 +319,6 @@ const Auth = () => {
   );
 };
 
-// ---------------- helpers ----------------
-
-const TabBtn = ({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={cn(
-      "flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-all",
-      active
-        ? "bg-background text-foreground shadow-sm"
-        : "text-muted-foreground hover:text-foreground"
-    )}
-  >
-    {icon}
-    {label}
-  </button>
-);
-
 const Field = ({
   id,
   label,
@@ -443,15 +384,6 @@ const SubmitButton = ({
       </>
     )}
   </Button>
-);
-
-const GoogleIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-    <path fill="#4285F4" d="M21.6 12.227c0-.682-.061-1.337-.175-1.966H12v3.72h5.385a4.604 4.604 0 0 1-1.997 3.018v2.51h3.232c1.892-1.742 2.98-4.31 2.98-7.282z"/>
-    <path fill="#34A853" d="M12 22c2.7 0 4.964-.895 6.62-2.422l-3.232-2.51c-.896.6-2.04.957-3.388.957-2.605 0-4.81-1.76-5.598-4.124H3.064v2.59A9.997 9.997 0 0 0 12 22z"/>
-    <path fill="#FBBC05" d="M6.402 13.901a5.99 5.99 0 0 1 0-3.802V7.51H3.064a10 10 0 0 0 0 8.98l3.338-2.59z"/>
-    <path fill="#EA4335" d="M12 5.977c1.47 0 2.787.505 3.825 1.498l2.868-2.868C16.96 2.99 14.696 2 12 2 8.087 2 4.71 4.246 3.064 7.51l3.338 2.59C7.19 7.737 9.395 5.977 12 5.977z"/>
-  </svg>
 );
 
 export default Auth;
