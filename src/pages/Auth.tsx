@@ -174,13 +174,13 @@ const Auth = () => {
         }`}
       >
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-border bg-background shadow-sm">
-            <Lock className="h-7 w-7 text-foreground" />
+          <div className="mx-auto mb-4 flex h-20 w-20 animate-scale-in items-center justify-center rounded-[1.75rem] border border-border bg-background shadow-[var(--shadow-elegant)]">
+            <MessageCircle className="h-9 w-9 text-foreground" />
           </div>
-          <h1 className="text-4xl font-semibold tracking-normal">PrivateChats</h1>
+          <h1 className="text-4xl font-semibold tracking-normal">VeltoChat</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin" && "Sign in to continue"}
-            {mode === "signup" && "Create your account"}
+            {mode === "signin" && "Login with username or email"}
+            {mode === "signup" && "Sign up with email and password"}
             {mode === "reset" && "Reset your password"}
           </p>
         </div>
@@ -189,12 +189,12 @@ const Auth = () => {
           <form onSubmit={handleSignIn} className="space-y-4 animate-fade-in">
             <Field
               id="username"
-              label="Username"
+              label="Username or email"
               icon={<AtSign className="h-4 w-4" />}
               autoComplete="username"
               value={username}
-              onChange={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-              placeholder="username"
+              onChange={(v) => setUsername(v.toLowerCase())}
+              placeholder="username or you@example.com"
             />
             <Field
               id="password"
@@ -241,15 +241,6 @@ const Auth = () => {
 
         {mode === "signup" && (
           <form onSubmit={handleSignUp} className="space-y-4 animate-fade-in">
-            <Field
-              id="name"
-              label="Name"
-              icon={<UserIcon className="h-4 w-4" />}
-              value={displayName}
-              onChange={setDisplayName}
-              placeholder="Jane Doe"
-              autoComplete="name"
-            />
             <Field
               id="email"
               label="Email"
