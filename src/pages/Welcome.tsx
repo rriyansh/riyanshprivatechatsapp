@@ -163,6 +163,8 @@ const Welcome = () => {
     handleFinish();
   };
 
+  const steps = ["Nickname", "Username", "Photo"];
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-md animate-scale-in glass-strong rounded-3xl p-8">
@@ -170,14 +172,24 @@ const Welcome = () => {
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--primary-glow))] shadow-[var(--shadow-elegant)]">
             <Sparkles className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome!</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Customize account</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Set up your profile so friends can find you
+            Step {step + 1} of 3 · {steps[step]}
           </p>
         </div>
 
-        {/* Avatar */}
-        <div className="mb-6 flex flex-col items-center">
+        <div className="mb-6 grid grid-cols-3 gap-2">
+          {steps.map((label, index) => (
+            <div
+              key={label}
+              className={`h-1.5 rounded-full transition-colors ${
+                index <= step ? "bg-primary" : "bg-muted"
+              }`}
+            />
+          ))}
+        </div>
+
+        {step === 2 && <div className="mb-6 flex animate-fade-in flex-col items-center">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -208,26 +220,24 @@ const Welcome = () => {
           <p className="mt-2 text-xs text-muted-foreground">
             Tap to add a photo (optional)
           </p>
-        </div>
+        </div>}
 
-        {/* Display name */}
-        <div className="space-y-1.5">
-          <Label htmlFor="dn">Display name</Label>
+        {step === 0 && <div className="animate-fade-in space-y-1.5">
+          <Label htmlFor="dn">Nickname</Label>
           <Input
             id="dn"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Jane Doe"
+            placeholder="Your nickname"
             maxLength={40}
             className="h-12 rounded-xl"
           />
           <p className="text-xs text-muted-foreground">
-            What people will see in chats
+            This name will show in chats and your profile.
           </p>
-        </div>
+        </div>}
 
-        {/* Username */}
-        <div className="mt-4 space-y-1.5">
+        {step === 1 && <div className="animate-fade-in space-y-1.5">
           <Label htmlFor="un">Username</Label>
           <div className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -256,21 +266,28 @@ const Welcome = () => {
           <p className="text-xs text-muted-foreground">
             Lowercase letters, numbers, underscores. You can also log in with this.
           </p>
-        </div>
+        </div>}
 
-        <Button
-          onClick={handleFinish}
-          disabled={saving || uploading || available === false}
-          className="mt-6 h-12 w-full rounded-xl bg-gradient-to-r from-primary to-[hsl(var(--primary-glow))] text-base font-semibold shadow-[var(--shadow-elegant)]"
-        >
-          {saving ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              Continue <ArrowRight className="ml-1 h-4 w-4" />
-            </>
+        <div className="mt-6 flex gap-3">
+          {step > 0 && (
+            <Button variant="secondary" onClick={() => setStep((s) => s - 1)} className="h-12 rounded-xl px-4">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
           )}
-        </Button>
+          <Button
+            onClick={handleNext}
+            disabled={saving || uploading || (step === 1 && available === false)}
+            className="h-12 flex-1 rounded-xl bg-gradient-to-r from-primary to-[hsl(var(--primary-glow))] text-base font-semibold shadow-[var(--shadow-elegant)]"
+          >
+            {saving ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : step === 2 ? (
+              <>Start app <Check className="ml-1 h-4 w-4" /></>
+            ) : (
+              <>Next <ArrowRight className="ml-1 h-4 w-4" /></>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
