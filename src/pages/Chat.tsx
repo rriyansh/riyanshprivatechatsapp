@@ -454,7 +454,7 @@ const Chat = () => {
   const visibleIds = useMemo(() => visibleMessages.map((m) => m.id), [visibleMessages]);
   const { byMessage: reactionsByMessage, toggle: toggleReaction } = useReactions(
     visibleIds,
-    partnerId
+    safePartnerId ?? undefined
   );
   const myReactedForActionTarget = useMemo(() => {
     if (!actionTarget || !user) return new Set<string>();
@@ -516,8 +516,8 @@ const Chat = () => {
           size="icon"
           variant="ghost"
           className="rounded-full"
-          onClick={() => partnerId && startCall(partnerId)}
-          disabled={callStatus !== "idle" || !partnerId}
+          onClick={() => safePartnerId && startCall(safePartnerId)}
+          disabled={callStatus !== "idle" || !safePartnerId}
           aria-label="Voice call"
           title="Voice call"
         >
@@ -674,12 +674,12 @@ const Chat = () => {
         payload={forwardPayload}
       />
 
-      {partnerId && (
+      {safePartnerId && (
         <WallpaperDialog
           open={wallpaperOpen}
           onOpenChange={setWallpaperOpen}
           type="dm"
-          id={partnerId}
+          id={safePartnerId}
           onChange={() => setWallpaperKey((k) => k + 1)}
         />
       )}
