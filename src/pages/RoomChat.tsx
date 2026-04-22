@@ -139,16 +139,16 @@ const RoomChat = () => {
 
   // Realtime
   useEffect(() => {
-    if (!user || !groupId) return;
+    if (!user || !safeGroupId) return;
     const channel = supabase
-      .channel(`room:${groupId}`)
+      .channel(`room:${safeGroupId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "group_messages",
-          filter: `group_id=eq.${groupId}`,
+          filter: `group_id=eq.${safeGroupId}`,
         },
         (payload) => {
           const m = payload.new as GroupMessage;
@@ -161,7 +161,7 @@ const RoomChat = () => {
           event: "UPDATE",
           schema: "public",
           table: "group_messages",
-          filter: `group_id=eq.${groupId}`,
+          filter: `group_id=eq.${safeGroupId}`,
         },
         (payload) => {
           const m = payload.new as GroupMessage;
@@ -172,7 +172,7 @@ const RoomChat = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, groupId]);
+  }, [user?.id, safeGroupId]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -183,7 +183,7 @@ const RoomChat = () => {
   const send = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const content = text.trim();
-    if (!content || !user || !groupId || sending) return;
+    if (!content || !user || !safeGroupId || sending) return;
     if (content.length > 4000) {
       toast.error("Message too long");
       return;
@@ -191,7 +191,7 @@ const RoomChat = () => {
     setSending(true);
     setText("");
     const { error } = await supabase.from("group_messages").insert({
-      group_id: groupId,
+      group_id: safeGroupId,
       sender_id: user.id,
       content,
       type: "text",
@@ -204,13 +204,13 @@ const RoomChat = () => {
   };
 
   const leaveGroup = async () => {
-    if (!user || !groupId) return;
+    if (!user || !safeGroupId) return;
     const ok = window.confirm("Leave this room? You'll need to be re-invited to come back.");
     if (!ok) return;
     const { error } = await supabase
       .from("group_members")
       .delete()
-      .eq("group_id", groupId)
+      .eq("group_id", safeGroupId)
       .eq("user_id", user.id);
     if (error) {
       toast.error(error.message);
