@@ -68,7 +68,6 @@ const Chat = () => {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [partnerTyping, setPartnerTyping] = useState(false);
 
   const [pendingImage, setPendingImage] = useState<File | null>(null);
   const [imageSending, setImageSending] = useState(false);
@@ -88,7 +87,6 @@ const Chat = () => {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const typingTimeout = useRef<number | undefined>();
 
   const channelName = useMemo(() => {
     if (!user || !safePartnerId) return "";
@@ -159,9 +157,7 @@ const Chat = () => {
   useEffect(() => {
     if (!user || !safePartnerId || !channelName) return;
 
-    const channel = supabase.channel(channelName, {
-      config: { broadcast: { self: false }, presence: { key: user.id } },
-    });
+    const channel = supabase.channel(channelName);
 
     channel
       .on(
@@ -195,18 +191,10 @@ const Chat = () => {
           setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, ...m } : x)));
         }
       )
-      .on("broadcast", { event: "typing" }, (payload) => {
-        if (payload.payload?.userId === safePartnerId) {
-          setPartnerTyping(true);
-          window.clearTimeout(typingTimeout.current);
-          typingTimeout.current = window.setTimeout(() => setPartnerTyping(false), 2500);
-        }
-      })
       .subscribe();
 
     channelRef.current = channel;
     return () => {
-      window.clearTimeout(typingTimeout.current);
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
@@ -216,16 +204,7 @@ const Chat = () => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages.length, partnerTyping]);
-
-  const handleTyping = (value: string) => {
-    setText(value);
-    channelRef.current?.send({
-      type: "broadcast",
-      event: "typing",
-      payload: { userId: user?.id },
-    });
-  };
+  }, [messages.length]);
 
   const buildReplyTarget = (m: ChatMessage): ReplyTarget => ({
     id: m.id,
