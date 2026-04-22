@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Loader2, Sparkles, ArrowRight } from "lucide-react";
+import { Camera, Loader2, Sparkles, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ const Welcome = () => {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState(0);
 
   // Prefill from existing profile
   useEffect(() => {
@@ -130,6 +131,36 @@ const Welcome = () => {
     await refresh();
     toast.success("You're all set!");
     navigate("/", { replace: true });
+  };
+
+  const handleNext = () => {
+    if (step === 0) {
+      const d = displayNameSchema.safeParse(displayName);
+      if (!d.success) {
+        toast.error(d.error.errors[0].message);
+        return;
+      }
+      setStep(1);
+      return;
+    }
+    if (step === 1) {
+      const u = usernameSchema.safeParse(username);
+      if (!u.success) {
+        toast.error(u.error.errors[0].message);
+        return;
+      }
+      if (checking) {
+        toast.error("Checking username, please wait");
+        return;
+      }
+      if (available === false) {
+        toast.error("That username is taken");
+        return;
+      }
+      setStep(2);
+      return;
+    }
+    handleFinish();
   };
 
   return (
