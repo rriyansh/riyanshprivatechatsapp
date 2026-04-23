@@ -319,7 +319,12 @@ export type Database = {
           id: string
           last_seen: string | null
           onboarded: boolean
+          online_status_visibility: string
+          private_account: boolean
+          read_receipts: boolean
+          screenshot_protection: boolean
           theme_pref: string
+          typing_indicators: boolean
           updated_at: string
           user_id: string
           username: string | null
@@ -334,7 +339,12 @@ export type Database = {
           id?: string
           last_seen?: string | null
           onboarded?: boolean
+          online_status_visibility?: string
+          private_account?: boolean
+          read_receipts?: boolean
+          screenshot_protection?: boolean
           theme_pref?: string
+          typing_indicators?: boolean
           updated_at?: string
           user_id: string
           username?: string | null
@@ -349,7 +359,12 @@ export type Database = {
           id?: string
           last_seen?: string | null
           onboarded?: boolean
+          online_status_visibility?: string
+          private_account?: boolean
+          read_receipts?: boolean
+          screenshot_protection?: boolean
           theme_pref?: string
+          typing_indicators?: boolean
           updated_at?: string
           user_id?: string
           username?: string | null
