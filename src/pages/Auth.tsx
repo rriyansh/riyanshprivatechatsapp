@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Lock, Mail, Eye, EyeOff, ArrowRight, Loader2, AtSign, MessageCircle } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, ArrowRight, Loader2, AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
   friendlyAuthError,
 } from "@/lib/authSchemas";
 import { usernameSchema } from "@/lib/profileSchemas";
+import veltogramLogo from "@/assets/veltogram-logo.jpeg";
 import {
   checkLoginAllowed,
   recordFailedLogin,
@@ -174,10 +175,12 @@ const Auth = () => {
         }`}
       >
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 animate-scale-in items-center justify-center rounded-[1.75rem] border border-border bg-background shadow-[var(--shadow-elegant)]">
-            <MessageCircle className="h-9 w-9 text-foreground" />
-          </div>
-          <h1 className="text-4xl font-semibold tracking-normal">VeltoChat</h1>
+          <img
+            src={veltogramLogo}
+            alt="Veltogram app logo"
+            className="mx-auto mb-4 h-24 w-24 animate-scale-in rounded-[1.75rem] object-cover shadow-[var(--shadow-elegant)]"
+          />
+          <h1 className="text-4xl font-semibold tracking-normal">Veltogram</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin" && "Login with username or email"}
             {mode === "signup" && "Sign up with email and password"}
@@ -194,7 +197,7 @@ const Auth = () => {
               autoComplete="username"
               value={username}
               onChange={(v) => setUsername(v.toLowerCase())}
-              placeholder="username or you@example.com"
+              placeholder=""
             />
             <Field
               id="password"
@@ -204,7 +207,7 @@ const Auth = () => {
               autoComplete="current-password"
               value={password}
               onChange={(v) => setPassword(v)}
-              placeholder="••••••••"
+              placeholder=""
               trailing={
                 <button
                   type="button"
@@ -249,7 +252,7 @@ const Auth = () => {
               autoComplete="email"
               value={email}
               onChange={setEmail}
-              placeholder="you@example.com"
+              placeholder=""
             />
             <Field
               id="password"
@@ -259,7 +262,7 @@ const Auth = () => {
               autoComplete="new-password"
               value={password}
               onChange={setPassword}
-              placeholder="At least 8 characters"
+              placeholder=""
               trailing={
                 <button
                   type="button"
@@ -298,7 +301,7 @@ const Auth = () => {
               autoComplete="email"
               value={email}
               onChange={setEmail}
-              placeholder="you@example.com"
+              placeholder=""
             />
             <SubmitButton loading={loading}>Send reset link</SubmitButton>
             <p className="text-center text-sm">

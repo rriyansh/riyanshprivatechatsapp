@@ -41,7 +41,7 @@ import {
 } from "@/components/chat/ForwardDialog";
 import { useReactions } from "@/hooks/useReactions";
 import { WallpaperDialog } from "@/components/chat/WallpaperDialog";
-import { getWallpaper, resolveWallpaperStyle } from "@/lib/chatWallpaper";
+import { getWallpaper, resolveWallpaperStyle, setWallpaper, clearWallpaper } from "@/lib/chatWallpaper";
 import { useCall } from "@/components/call/CallProvider";
 
 type Profile = {
@@ -84,6 +84,48 @@ const Chat = () => {
   );
 
   const { startCall, status: callStatus } = useCall();
+
+  // Shared wallpaper sync for both chat participants
+  useEffect(() => {
+    if (!user || !safePartnerId) return;
+    const [user_a, user_b] = [user.id, safePartnerId].sort();
+
+    const applyShared = (value: string | null) => {
+      if (!safePartnerId) return;
+      if (value) setWallpaper("dm", safePartnerId, value);
+      else clearWallpaper("dm", safePartnerId);
+      setWallpaperKey((k) => k + 1);
+    };
+
+    supabase
+      .from("shared_chat_wallpapers" as never)
+      .select("wallpaper_data")
+      .eq("user_a", user_a)
+      .eq("user_b", user_b)
+      .maybeSingle()
+      .then(({ data }) => {
+        const row = data as unknown as { wallpaper_data?: string } | null;
+        if (row?.wallpaper_data) applyShared(row.wallpaper_data);
+      });
+
+    const channel = supabase
+      .channel(`shared-wallpaper:${user_a}:${user_b}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "shared_chat_wallpapers" },
+        (payload) => {
+          const row = (payload.new || payload.old) as { user_a?: string; user_b?: string; wallpaper_data?: string };
+          if (row.user_a !== user_a || row.user_b !== user_b) return;
+          applyShared(payload.eventType === "DELETE" ? null : row.wallpaper_data ?? null);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, safePartnerId]);
+
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -513,7 +555,7 @@ const Chat = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52 rounded-2xl">
             <DropdownMenuItem onClick={() => setWallpaperOpen(true)}>
-              <ImageIcon className="mr-2 h-4 w-4" /> Chat wallpaper
+              <ImageIcon className="mr-2 h-4 w-4" /> Change Wallpaper
             </DropdownMenuItem>
             <DropdownMenuItem onClick={copyShareLink}>
               <Share2 className="mr-2 h-4 w-4" /> Copy share link

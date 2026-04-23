@@ -36,16 +36,17 @@ const SearchUsers = () => {
     (async () => {
       setLoading(true);
       const safeSearch = sanitizePostgrestSearch(debounced);
-      // Empty query: show suggested (most-followed) people
-      const base = supabase
+      if (!safeSearch) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase
         .from("profiles_public")
         .select("user_id, username, display_name, avatar_url, bio, followers_count")
-        .neq("user_id", user.id);
-      const query = safeSearch
-        ? base.or(`username.ilike.%${safeSearch}%,display_name.ilike.%${safeSearch}%`)
-        : base.order("followers_count", { ascending: false });
-
-      const { data, error } = await query.limit(30);
+        .neq("user_id", user.id)
+        .or(`username.ilike.%${safeSearch}%,display_name.ilike.%${safeSearch}%`)
+        .limit(30);
       if (cancelled) return;
       if (error) console.error(error);
       setResults(((data ?? []) as unknown) as SearchProfile[]);
@@ -56,7 +57,7 @@ const SearchUsers = () => {
     };
   }, [debounced, user?.id]);
 
-  const heading = useMemo(() => (debounced ? "Results" : "Suggested"), [debounced]);
+  const heading = useMemo(() => (debounced ? "Results" : "Search users"), [debounced]);
 
   return (
     <div className="mx-auto w-full max-w-2xl pb-24">
@@ -68,7 +69,7 @@ const SearchUsers = () => {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="@username or name…"
+            placeholder="Search username or name…"
             autoCapitalize="off"
             autoCorrect="off"
             className="h-12 rounded-2xl bg-background/60 pl-10"
@@ -88,9 +89,9 @@ const SearchUsers = () => {
         ) : results.length === 0 ? (
           <div className="mx-auto mt-12 max-w-sm rounded-3xl glass px-6 py-10 text-center">
             <UserX className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="font-semibold">No matches</p>
+            <p className="font-semibold">{debounced ? "No matches" : "Start typing to search"}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Try a different username or name.
+              {debounced ? "Try a different username or name." : "Only real matching users will appear here."}
             </p>
           </div>
         ) : (

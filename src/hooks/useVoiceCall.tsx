@@ -39,6 +39,7 @@ export const useVoiceCall = () => {
   const [peerId, setPeerId] = useState<string | null>(null);
   const [callId, setCallId] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(true);
   const [startedAt, setStartedAt] = useState<number | null>(null);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -91,6 +92,7 @@ export const useVoiceCall = () => {
     pendingIceRef.current = [];
     remoteSetRef.current = false;
     setMuted(false);
+    setSpeakerOn(true);
     setStartedAt(null);
   }, []);
 
@@ -201,6 +203,23 @@ export const useVoiceCall = () => {
     tracks.forEach((t) => (t.enabled = !next));
     setMuted(next);
   }, [muted]);
+
+  const toggleSpeaker = useCallback(() => {
+    const next = !speakerOn;
+    if (remoteAudioRef.current) remoteAudioRef.current.muted = !next;
+    setSpeakerOn(next);
+  }, [speakerOn]);
+
+  const switchAudioOutput = useCallback(async () => {
+    const audio = remoteAudioRef.current as (HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> }) | null;
+    if (!audio?.setSinkId || !navigator.mediaDevices?.enumerateDevices) return false;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const outputs = devices.filter((d) => d.kind === "audiooutput");
+    const next = outputs.find((d) => d.deviceId !== audio.sinkId) ?? outputs[0];
+    if (!next) return false;
+    await audio.setSinkId(next.deviceId);
+    return true;
+  }, []);
 
   /** Subscribe to incoming signals. */
   useEffect(() => {
@@ -339,6 +358,7 @@ export const useVoiceCall = () => {
     incoming,
     peerId,
     muted,
+    speakerOn,
     startedAt,
     remoteAudioRef,
     startCall,
@@ -346,5 +366,7 @@ export const useVoiceCall = () => {
     rejectCall,
     endCall,
     toggleMute,
+    toggleSpeaker,
+    switchAudioOutput,
   };
 };
