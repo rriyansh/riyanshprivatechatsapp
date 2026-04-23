@@ -40,6 +40,7 @@ import {
   unfollow,
 } from "@/lib/follows";
 import { toast } from "sonner";
+import { ProfilePosts } from "@/components/posts/ProfilePosts";
 
 type PublicProfileData = {
   user_id: string;
@@ -67,6 +68,7 @@ const PublicProfile = () => {
     iBlockedThem: false,
   });
   const [busy, setBusy] = useState(false);
+  const [postCount, setPostCount] = useState(0);
   const [confirmBlock, setConfirmBlock] = useState(false);
 
   const load = async () => {
@@ -229,6 +231,7 @@ const PublicProfile = () => {
             )}
 
             <div className="mt-5 flex items-center gap-6">
+              <Stat label="Posts" value={postCount} />
               <Stat label="Followers" value={profile.followers_count} />
               <Stat label="Following" value={profile.following_count} />
             </div>

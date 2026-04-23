@@ -19,11 +19,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/imageCompression";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import { ProfilePosts } from "@/components/posts/ProfilePosts";
 
 const Profile = () => {
   const { user } = useAuth();
   const { profile, loading, refresh } = useMyProfile();
-  const [counts, setCounts] = useState({ followers: 0, following: 0 });
+  const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0 });
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<
     { id: string; old_username: string | null; new_username: string; changed_at: string }[]
@@ -43,7 +44,7 @@ const Profile = () => {
           .select("id", { count: "exact", head: true })
           .eq("follower_id", user.id),
       ]);
-      setCounts({ followers: followers ?? 0, following: following ?? 0 });
+      setCounts((prev) => ({ ...prev, followers: followers ?? 0, following: following ?? 0 }));
     })();
   }, [user?.id]);
 
@@ -159,6 +160,7 @@ const Profile = () => {
 
           {/* Counts */}
           <div className="mt-5 flex items-center gap-6">
+            <Stat label="Posts" value={counts.posts} />
             <Stat label="Followers" value={counts.followers} />
             <Stat label="Following" value={counts.following} />
           </div>
@@ -177,6 +179,12 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      <ProfilePosts
+        userId={user?.id ?? profile.user_id}
+        isOwn
+        onCountChange={(posts) => setCounts((prev) => ({ ...prev, posts }))}
+      />
 
       {/* Account info */}
       <section className="mt-4 rounded-3xl glass px-5 py-4">
