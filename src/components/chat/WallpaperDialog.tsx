@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Image as ImageIcon, RotateCcw, Check, Trash2 } from "lucide-react";
+import { Image as ImageIcon, RotateCcw, Check, Trash2, Users, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,8 @@ import {
   setWallpaper,
   resolveWallpaperStyle,
 } from "@/lib/chatWallpaper";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const MAX_MB = 4;
 
@@ -34,27 +36,78 @@ export const WallpaperDialog = ({
   id: string;
   onChange: (newValue: string | null) => void;
 }) => {
+  const { user } = useAuth();
   const [current, setCurrent] = useState<string | null>(() => getWallpaper(type, id));
+  const [pending, setPending] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) setCurrent(getWallpaper(type, id));
+    if (open) {
+      setCurrent(getWallpaper(type, id));
+      setPending(null);
+    }
   }, [open, type, id]);
 
-  const choose = (value: string | null) => {
-    if (!value) {
-      clearWallpaper(type, id);
-    } else {
-      setWallpaper(type, id, value);
-    }
+  const pair = () => {
+    if (!user || type !== "dm") return null;
+    const [user_a, user_b] = [user.id, id].sort();
+    return { user_a, user_b };
+  };
+
+  const applyLocal = (value: string | null) => {
+    if (!value) clearWallpaper(type, id);
+    else setWallpaper(type, id, value);
     setCurrent(value);
+    setPending(null);
     onChange(value);
   };
 
-  const reset = () => {
-    choose(null);
-    toast.success("Wallpaper reset");
+  const applyBoth = async (value: string | null) => {
+    if (!user || type !== "dm") return applyLocal(value);
+    const ordered = pair();
+    if (!ordered) return;
+    setBusy(true);
+    try {
+      if (!value) {
+        const { error } = await supabase
+          .from("shared_chat_wallpapers" as never)
+          .delete()
+          .eq("user_a", ordered.user_a)
+          .eq("user_b", ordered.user_b);
+        if (error) throw error;
+        applyLocal(null);
+        toast.success("Wallpaper removed for both users");
+      } else {
+        const { error } = await supabase.from("shared_chat_wallpapers" as never).upsert(
+          {
+            ...ordered,
+            wallpaper_data: value,
+            updated_by: user.id,
+            updated_at: new Date().toISOString(),
+          } as never,
+          { onConflict: "user_a,user_b" }
+        );
+        if (error) throw error;
+        applyLocal(value);
+        toast.success("Wallpaper synced for both users");
+      }
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not sync wallpaper");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const choose = (value: string | null) => {
+    setPending(value);
+    setCurrent(value);
+  };
+
+  const resetLocal = () => {
+    applyLocal(null);
+    toast.success("Wallpaper reset for you");
   };
 
   const onPick = async (file: File) => {
@@ -71,8 +124,7 @@ export const WallpaperDialog = ({
       const { blob } = await compressImage(file, { maxDim: 1400, quality: 0.78 });
       const dataUrl = await fileToDataURL(new File([blob], file.name));
       choose(dataUrl);
-      toast.success("Wallpaper updated");
-      onOpenChange(false);
+      toast.success("Preview ready");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not load image");
     } finally {
@@ -84,16 +136,13 @@ export const WallpaperDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md rounded-3xl">
         <DialogHeader>
-          <DialogTitle>Chat wallpaper</DialogTitle>
+          <DialogTitle>Change wallpaper</DialogTitle>
           <DialogDescription>
-            Stored on this device only. Each chat can have its own.
+            Store it for this chat only, or sync it for both users.
           </DialogDescription>
         </DialogHeader>
 
-        <div
-          className="min-h-28 overflow-hidden rounded-2xl border border-border bg-muted"
-          style={resolveWallpaperStyle(current)}
-        >
+        <div className="min-h-28 overflow-hidden rounded-2xl border border-border bg-muted" style={resolveWallpaperStyle(current)}>
           <div className="flex min-h-28 items-center justify-center bg-background/35 p-4 text-center backdrop-blur-[1px]">
             <span className="rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-foreground shadow-sm">
               Live preview
@@ -127,7 +176,6 @@ export const WallpaperDialog = ({
             );
           })}
 
-          {/* Custom upload */}
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -151,25 +199,29 @@ export const WallpaperDialog = ({
           }}
         />
 
+        {pending !== null || current === null ? (
+          <div className="grid grid-cols-2 gap-2 rounded-3xl border border-border bg-card p-2">
+            <Button variant="outline" onClick={() => applyLocal(current)} disabled={busy} className="rounded-2xl">
+              <User className="mr-1.5 h-4 w-4" /> Apply for me
+            </Button>
+            <Button onClick={() => applyBoth(current)} disabled={busy || type !== "dm"} className="rounded-2xl">
+              {busy ? <RotateCcw className="mr-1.5 h-4 w-4 animate-spin" /> : <Users className="mr-1.5 h-4 w-4" />}
+              Apply for both
+            </Button>
+          </div>
+        ) : null}
+
         <div className="flex justify-between gap-2 pt-1">
-          <Button
-            variant="ghost"
-            onClick={reset}
-            className="rounded-2xl"
-          >
-            <RotateCcw className="mr-1.5 h-4 w-4" />
-            Reset
+          <Button variant="ghost" onClick={resetLocal} className="rounded-2xl">
+            <RotateCcw className="mr-1.5 h-4 w-4" /> Reset mine
           </Button>
           <div className="flex gap-2">
             {current && (
-              <Button variant="outline" onClick={reset} className="rounded-2xl">
-                <Trash2 className="mr-1.5 h-4 w-4" />
-                Remove
+              <Button variant="outline" onClick={() => applyBoth(null)} disabled={busy || type !== "dm"} className="rounded-2xl">
+                <Trash2 className="mr-1.5 h-4 w-4" /> Remove both
               </Button>
             )}
-            <Button onClick={() => onOpenChange(false)} className="rounded-2xl">
-              Done
-            </Button>
+            <Button onClick={() => onOpenChange(false)} className="rounded-2xl">Done</Button>
           </div>
         </div>
       </DialogContent>
