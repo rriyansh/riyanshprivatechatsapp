@@ -190,6 +190,30 @@ const App = () => (
                         }
                       />
                       <Route
+                        path="/settings/sessions"
+                        element={
+                          <ProtectedRoute>
+                            <ActiveSessions />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/restricted"
+                        element={
+                          <ProtectedRoute>
+                            <RestrictedUsers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/ghost"
+                        element={
+                          <ProtectedRoute>
+                            <GhostMode />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
                         path="/pc/:username"
                         element={
                           <ProtectedRoute>
