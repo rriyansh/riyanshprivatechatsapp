@@ -18,6 +18,13 @@ export type MyProfile = {
   typing_indicators: boolean;
   screenshot_protection: boolean;
   online_status_visibility: "everyone" | "followers" | "nobody";
+  last_seen_visibility: "everyone" | "contacts" | "nobody";
+  dm_permission: "everyone" | "followers" | "nobody";
+  follow_permission: "everyone" | "nobody";
+  profile_photo_visibility: "everyone" | "contacts" | "nobody";
+  comment_permission: "everyone" | "followers" | "nobody";
+  tag_permission: "everyone" | "followers" | "nobody";
+  two_factor_enabled: boolean;
   onboarded: boolean;
   created_at: string;
 };
@@ -45,7 +52,7 @@ export const MyProfileProvider = ({ children }: { children: ReactNode }) => {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "user_id, username, display_name, avatar_url, bio, theme_pref, chat_accent, hide_last_seen, private_account, read_receipts, typing_indicators, screenshot_protection, online_status_visibility, onboarded, created_at"
+        "user_id, username, display_name, avatar_url, bio, theme_pref, chat_accent, hide_last_seen, private_account, read_receipts, typing_indicators, screenshot_protection, online_status_visibility, last_seen_visibility, dm_permission, follow_permission, profile_photo_visibility, comment_permission, tag_permission, two_factor_enabled, onboarded, created_at"
       )
       .eq("user_id", user.id)
       .maybeSingle();
