@@ -29,7 +29,11 @@ import RoomChat from "./pages/RoomChat";
 import ShareLink from "./pages/ShareLink";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import ActiveSessions from "./pages/ActiveSessions";
+import RestrictedUsers from "./pages/RestrictedUsers";
+import GhostMode from "./pages/GhostMode";
 import NotFound from "./pages/NotFound.tsx";
+import { useSessionTracking } from "./hooks/useSessionTracking";
 
 const queryClient = new QueryClient();
 
@@ -40,7 +44,7 @@ const queryClient = new QueryClient();
 const IntroGate = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const [showIntro, setShowIntro] = useState(false);
-
+  useSessionTracking();
   useEffect(() => {
     if (loading) return;
     if (user && shouldPlayIntro()) {
@@ -182,6 +186,30 @@ const App = () => (
                         element={
                           <ProtectedRoute>
                             <AppLockSettings />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/sessions"
+                        element={
+                          <ProtectedRoute>
+                            <ActiveSessions />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/restricted"
+                        element={
+                          <ProtectedRoute>
+                            <RestrictedUsers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/ghost"
+                        element={
+                          <ProtectedRoute>
+                            <GhostMode />
                           </ProtectedRoute>
                         }
                       />

@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_sessions: {
+        Row: {
+          created_at: string
+          device_label: string
+          id: string
+          ip_hint: string | null
+          last_active_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_label?: string
+          id?: string
+          ip_hint?: string | null
+          last_active_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_label?: string
+          id?: string
+          ip_hint?: string | null
+          last_active_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -110,6 +140,27 @@ export type Database = {
           followee_id?: string
           follower_id?: string
           id?: string
+        }
+        Relationships: []
+      }
+      ghost_targets: {
+        Row: {
+          created_at: string
+          hidden_from_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hidden_from_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hidden_from_id?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -407,17 +458,24 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           chat_accent: string
+          comment_permission: string
           created_at: string
           display_name: string | null
+          dm_permission: string
+          follow_permission: string
           hide_last_seen: boolean
           id: string
           last_seen: string | null
+          last_seen_visibility: string
           onboarded: boolean
           online_status_visibility: string
           private_account: boolean
+          profile_photo_visibility: string
           read_receipts: boolean
           screenshot_protection: boolean
+          tag_permission: string
           theme_pref: string
+          two_factor_enabled: boolean
           typing_indicators: boolean
           updated_at: string
           user_id: string
@@ -427,17 +485,24 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           chat_accent?: string
+          comment_permission?: string
           created_at?: string
           display_name?: string | null
+          dm_permission?: string
+          follow_permission?: string
           hide_last_seen?: boolean
           id?: string
           last_seen?: string | null
+          last_seen_visibility?: string
           onboarded?: boolean
           online_status_visibility?: string
           private_account?: boolean
+          profile_photo_visibility?: string
           read_receipts?: boolean
           screenshot_protection?: boolean
+          tag_permission?: string
           theme_pref?: string
+          two_factor_enabled?: boolean
           typing_indicators?: boolean
           updated_at?: string
           user_id: string
@@ -447,21 +512,49 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           chat_accent?: string
+          comment_permission?: string
           created_at?: string
           display_name?: string | null
+          dm_permission?: string
+          follow_permission?: string
           hide_last_seen?: boolean
           id?: string
           last_seen?: string | null
+          last_seen_visibility?: string
           onboarded?: boolean
           online_status_visibility?: string
           private_account?: boolean
+          profile_photo_visibility?: string
           read_receipts?: boolean
           screenshot_protection?: boolean
+          tag_permission?: string
           theme_pref?: string
+          two_factor_enabled?: boolean
           typing_indicators?: boolean
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      restricted_users: {
+        Row: {
+          created_at: string
+          id: string
+          restricted_id: string
+          restrictor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          restricted_id: string
+          restrictor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          restricted_id?: string
+          restrictor_id?: string
         }
         Relationships: []
       }
